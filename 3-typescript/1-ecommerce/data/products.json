@@ -248,5 +248,199 @@
       "closure": "Lace-up",
       "platformHeight": "2 inches"
     }
+  },
+  {
+    "id": 1006,
+    "name": "AeroRun Velocity 2 Blue Steel",
+    "departmentId": 3001,
+    "categoryId": 4001,
+    "brandId": 223344,
+    "linkId": "aerorun-velocity-2-blue-steel",
+    "refId": "arv2_bs_1006",
+    "isVisible": true,
+    "description": "Sleek design meets high-performance in the AeroRun Velocity 2. Engineered with ultra-light materials and responsive midsoles for peak running efficiency.",
+    "descriptionShort": "Ultra-light, high-efficiency running shoes.",
+    "releaseDate": "2024-05-01T00:00:00",
+    "keywords": "AeroRun,Velocity,Running,Blue Steel",
+    "title": "AeroRun Velocity 2 Blue Steel",
+    "isActive": true,
+    "taxCode": "RUNFAST01",
+    "metaTagDescription": "Run faster and farther with the new AeroRun Velocity 2.",
+    "supplierId": 4,
+    "showWithoutStock": false,
+    "adWordsRemarketingCode": "",
+    "lomadeeCampaignCode": "",
+    "score": 4.7,
+    "price": 149.99,
+    "salePrice": 129.99,
+    "onSale": true,
+    "colors": ["Blue Steel", "Lime", "Grey"],
+    "sizes": [7, 8, 9, 10, 11, 12],
+    "tags": ["New Release", "Performance"],
+    "images": [
+      {
+        "id": 10061,
+        "url": "products/aerorun-velocity-2-blue-steel-main.jpg",
+        "alt": "AeroRun Velocity 2 Blue Steel - Main View",
+        "isMain": true
+      },
+      {
+        "id": 10062,
+        "url": "products/aerorun-velocity-2-blue-steel-side.jpg",
+        "alt": "AeroRun Velocity 2 Blue Steel - Side View",
+        "isMain": false
+      }
+    ],
+    "specifications": {
+      "material": "Engineered knit upper, carbon rubber outsole",
+      "weight": "265g (size 9)",
+      "cushioning": "Dual-density foam midsole",
+      "closure": "Speed lacing system",
+      "archSupport": "Neutral"
+    }
+  },
+  {
+    "id": 1007,
+    "name": "ComfiSlide Luxe Sandals Rose Gold",
+    "departmentId": 3004,
+    "categoryId": 4031,
+    "brandId": 88877,
+    "linkId": "comfislide-luxe-sandals-rose-gold",
+    "refId": "cslx_rg_1007",
+    "isVisible": true,
+    "description": "Step into luxury with the ComfiSlide Luxe. Cushioned footbed and premium straps combine comfort and elegance for casual, sunny days.",
+    "descriptionShort": "Elegant comfort for everyday wear.",
+    "releaseDate": "2023-06-10T00:00:00",
+    "keywords": "ComfiSlide,Sandals,Rose Gold,Comfort",
+    "title": "ComfiSlide Luxe Sandals Rose Gold",
+    "isActive": true,
+    "taxCode": "SANDALX23",
+    "metaTagDescription": "Chic and comfy, perfect for sunny day strolls.",
+    "supplierId": 6,
+    "showWithoutStock": true,
+    "adWordsRemarketingCode": "",
+    "lomadeeCampaignCode": "",
+    "score": 4.3,
+    "price": 49.99,
+    "salePrice": 39.99,
+    "onSale": true,
+    "colors": ["Rose Gold", "Beige", "Black"],
+    "sizes": [5, 6, 7, 8, 9],
+    "tags": ["Casual", "Summer"],
+    "images": [
+      {
+        "id": 10071,
+        "url": "products/comfislide-luxe-rose-gold-main.jpg",
+        "alt": "ComfiSlide Luxe Sandals Rose Gold - Main View",
+        "isMain": true
+      },
+      {
+        "id": 10072,
+        "url": "products/comfislide-luxe-rose-gold-top.jpg",
+        "alt": "ComfiSlide Luxe Sandals Rose Gold - Top View",
+        "isMain": false
+      }
+    ],
+    "specifications": {
+      "material": "PU leather straps, memory foam footbed",
+      "weight": "180g (size 7)",
+      "cushioning": "Ergonomic memory foam",
+      "closure": "Slip-on",
+      "archSupport": "Low"
+    }
+  },
+  {
+    "id": 1008,
+    "name": "GlideCore Terrain GTX Olive",
+    "departmentId": 3001,
+    "categoryId": 4004,
+    "brandId": 445566,
+    "linkId": "glidecore-terrain-gtx-olive",
+    "refId": "gctgtx_olv_1008",
+    "isVisible": true,
+    "description": "Conquer any terrain with GlideCore Terrain GTX. Waterproof Gore-Tex lining, reinforced grip outsole, and durable overlays ensure peak trail performance in all weather.",
+    "descriptionShort": "All-weather trail shoe with Gore-Tex lining.",
+    "releaseDate": "2023-08-22T00:00:00",
+    "keywords": "GlideCore,Terrain,GTX,Trail,Olive",
+    "title": "GlideCore Terrain GTX Olive",
+    "isActive": true,
+    "taxCode": "TRAIL999",
+    "metaTagDescription": "Built for the outdoors, waterproof and rugged for any path.",
+    "supplierId": 5,
+    "showWithoutStock": false,
+    "adWordsRemarketingCode": "",
+    "lomadeeCampaignCode": "",
+    "score": 4.9,
+    "price": 159.95,
+    "salePrice": null,
+    "onSale": false,
+    "colors": ["Olive", "Brown", "Black"],
+    "sizes": [7, 8, 9, 10, 11, 12, 13],
+    "tags": ["Trail", "Waterproof"],
+    "images": [
+      {
+        "id": 10081,
+        "url": "products/glidecore-terrain-gtx-olive-main.jpg",
+        "alt": "GlideCore Terrain GTX Olive - Main View",
+        "isMain": true
+      },
+      {
+        "id": 10082,
+        "url": "products/glidecore-terrain-gtx-olive-back.jpg",
+        "alt": "GlideCore Terrain GTX Olive - Back View",
+        "isMain": false
+      }
+    ],
+    "specifications": {
+      "material": "Nylon mesh with Gore-Tex lining, rubber sole",
+      "weight": "410g (size 10)",
+      "cushioning": "Trail-specific EVA midsole",
+      "closure": "Lace-up with quick-pull toggle",
+      "archSupport": "High"
+    }
+  },
+  {
+    "id": 1009,
+    "name": "MetroLite Knit Loafers Sand",
+    "departmentId": 3002,
+    "categoryId": 4015,
+    "brandId": 22233,
+    "linkId": "metrolite-knit-loafers-sand",
+    "refId": "mlkl_sand_1009",
+    "isVisible": true,
+    "description": "The MetroLite Knit Loafers blend breathable construction and slip-on convenience with a modern aesthetic. A perfect companion for urban exploration or laid-back weekends.",
+    "descriptionShort": "Breathable knit and sleek comfort.",
+    "releaseDate": "2024-01-12T00:00:00",
+    "keywords": "MetroLite,Loafers,Knit,Sand,Casual",
+    "title": "MetroLite Knit Loafers Sand",
+    "isActive": true,
+    "taxCode": "CASLOAF01",
+    "metaTagDescription": "Easygoing design meets breathable comfort in the MetroLite Loafers.",
+    "supplierId": 8,
+    "showWithoutStock": true,
+    "adWordsRemarketingCode": "",
+    "lomadeeCampaignCode": "",
+    "score": 4.2,
+    "price": 64.99,
+    "salePrice": 54.99,
+    "onSale": true,
+    "colors": ["Sand", "Charcoal", "Navy"],
+    "sizes": [6, 7, 8, 9, 10, 11],
+    "tags": ["Comfort", "Slip-On"],
+    "images": [
+      {
+        "id": 10091,
+        "url": "products/metrolite-knit-loafers-sand-main.jpg",
+        "alt": "MetroLite Knit Loafers Sand - Main View",
+        "isMain": true
+      }
+    ],
+    "specifications": {
+      "material": "Breathable knit upper with rubber outsole",
+      "weight": "280g (size 9)",
+      "cushioning": "Memory foam insole",
+      "closure": "Slip-on",
+      "archSupport": "Medium"
+    }
   }
 ]

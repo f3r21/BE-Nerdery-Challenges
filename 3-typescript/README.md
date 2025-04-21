@@ -16,6 +16,16 @@ The challenges are divided into two main parts:
 
     - **1.3 Departments:** This challenge focuses on implementing code logic for departments, using the provided JSON data. You will practice working with typed data to implement the required functionalities.
 
+    - **1.4 Products and Brands:** This challenge requires you to implement code logic that combines both products and brands, utilizing the data from the JSON files. The focus is on effectively merging and manipulating data while maintaining type safety.
+
+    - **1.5 Products and Departments:** Similar to the previous challenge, this section requires you to implement code logic that combines products and departments, again using the provided JSON data. The emphasis remains on type safety and effective data manipulation.
+
+    - **1.6 Products, Brands, and Departments:** This final challenge in the e-commerce section requires you to implement code logic that combines all three entities: products, brands, and departments. You will practice working with complex data structures while ensuring type safety throughout your implementation.
+
+##### Note
+
+You should use the util provide to read the json files. The util is located in the `1-ecommerce/utils` directory and is named `read-json.util.ts`. This utility function reads the JSON files and returns the data in a type-safe manner.
+
 2.  **Custom Utility Types and Generics:** This section delves into more advanced TypeScript features, challenging you to create your own utility types and a generic deep clone function.
 
     - **2.1 Custom Utility Types:** This challenge presents six exercises where you will recreate built-in utility types like `ReadOnly` and `ReturnType`, as well as build custom ones such as `OmitByType` and `MyAwaited`. These exercises will solidify your understanding of conditional types and type manipulation.

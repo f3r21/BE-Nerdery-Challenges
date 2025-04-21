@@ -12,18 +12,14 @@
  *   - cheapestProduct: The complete Product object with the lowest price
  *   - onSaleCount: The number of products that are currently on sale
  *   - averageDiscount: The average discount percentage for products on sale (rounded to 2 decimal places)
- * - Handle edge cases appropriately (empty arrays, etc.)
+ * - Prices should be manage in regular prices and not in sale prices
  * - Use proper TypeScript typing for parameters and return values
  * - Implement the function using efficient array methods
  *
  *
  **/
 
-async function analyzeProductPrices(products: unknown[]): Promise<unknown> {
-  // Implement the function logic here
-
-  return {};
-}
+async function analyzeProductPrices(products: any[]): Promise<any> {}
 
 /**
  *  Challenge 2: Build a Product Catalog with Brand Metadata
