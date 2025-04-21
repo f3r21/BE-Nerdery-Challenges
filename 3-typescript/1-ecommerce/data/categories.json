@@ -1,0 +1,158 @@
+[
+  {
+    "id": 4001,
+    "name": "Running Shoes",
+    "departmentId": 3001,
+    "description": "Shoes designed specifically for running and jogging activities, featuring enhanced cushioning and support.",
+    "keywords": "running, jogging, marathon, athletic footwear",
+    "isActive": true,
+    "iconUrl": "categories/running_icon.png",
+    "bannerUrl": "categories/running_banner.jpg",
+    "displayOrder": 1,
+    "metaDescription": "Discover premium running shoes designed for comfort, support, and performance on any terrain.",
+    "filters": [
+      {
+        "name": "Support Type",
+        "values": ["Neutral", "Stability", "Motion Control"]
+      },
+      {
+        "name": "Cushioning",
+        "values": ["Minimal", "Moderate", "Maximum"]
+      },
+      {
+        "name": "Terrain",
+        "values": ["Road", "Trail", "Track"]
+      }
+    ]
+  },
+  {
+    "id": 4002,
+    "name": "Lifestyle Sneakers",
+    "departmentId": 3001,
+    "description": "Casual sneakers for everyday wear combining comfort and style, perfect for daily activities.",
+    "keywords": "casual, lifestyle, everyday, comfortable, streetwear",
+    "isActive": true,
+    "iconUrl": "categories/lifestyle_icon.png",
+    "bannerUrl": "categories/lifestyle_banner.jpg",
+    "displayOrder": 2,
+    "metaDescription": "Stylish and comfortable sneakers for everyday wear, blending fashion with practicality.",
+    "filters": [
+      {
+        "name": "Style",
+        "values": ["Modern", "Retro", "Classic", "Minimalist"]
+      },
+      {
+        "name": "Material",
+        "values": ["Canvas", "Leather", "Synthetic", "Knit"]
+      },
+      {
+        "name": "Feature",
+        "values": ["Slip-on", "Lace-up", "Velcro"]
+      }
+    ]
+  },
+  {
+    "id": 4003,
+    "name": "Training Shoes",
+    "departmentId": 3001,
+    "description": "Versatile footwear designed for gym workouts and cross-training with enhanced stability and grip.",
+    "keywords": "training, gym, workout, cross-fit, fitness",
+    "isActive": true,
+    "iconUrl": "categories/training_icon.png",
+    "bannerUrl": "categories/training_banner.jpg",
+    "displayOrder": 3,
+    "metaDescription": "High-performance training shoes designed for intense workouts and cross-training sessions.",
+    "filters": [
+      {
+        "name": "Training Type",
+        "values": ["CrossFit", "Weightlifting", "HIIT", "General Training"]
+      },
+      {
+        "name": "Support Level",
+        "values": ["Minimal", "Moderate", "Maximum"]
+      },
+      {
+        "name": "Flexibility",
+        "values": ["Rigid", "Semi-flexible", "Highly Flexible"]
+      }
+    ]
+  },
+  {
+    "id": 4004,
+    "name": "Stability Running",
+    "departmentId": 3001,
+    "description": "Running shoes with additional support features for overpronation and enhanced stability.",
+    "keywords": "stability, support, overpronation, running, control",
+    "isActive": true,
+    "iconUrl": "categories/stability_icon.png",
+    "bannerUrl": "categories/stability_banner.jpg",
+    "displayOrder": 4,
+    "metaDescription": "Specialized running shoes with stability features for runners who need additional support.",
+    "filters": [
+      {
+        "name": "Pronation Control",
+        "values": ["Mild", "Moderate", "Maximum"]
+      },
+      {
+        "name": "Arch Support",
+        "values": ["Low", "Medium", "High"]
+      },
+      {
+        "name": "Heel Drop",
+        "values": ["0-4mm", "5-8mm", "9-12mm"]
+      }
+    ]
+  },
+  {
+    "id": 4010,
+    "name": "Retro Sneakers",
+    "departmentId": 3002,
+    "description": "Classic sneaker designs inspired by vintage styles from the 70s, 80s, and 90s.",
+    "keywords": "retro, classic, vintage, old school, throwback",
+    "isActive": true,
+    "iconUrl": "categories/retro_icon.png",
+    "bannerUrl": "categories/retro_banner.jpg",
+    "displayOrder": 5,
+    "metaDescription": "Authentic retro sneakers bringing back classic styles with modern comfort features.",
+    "filters": [
+      {
+        "name": "Era",
+        "values": ["70s", "80s", "90s", "00s"]
+      },
+      {
+        "name": "Style",
+        "values": ["Tennis", "Basketball", "Running", "Skate"]
+      },
+      {
+        "name": "Material",
+        "values": ["Suede", "Leather", "Canvas", "Nylon"]
+      }
+    ]
+  },
+  {
+    "id": 4022,
+    "name": "Platform Sneakers",
+    "departmentId": 3003,
+    "description": "Sneakers with elevated platform soles for added height and distinctive style statement.",
+    "keywords": "platform, height, elevated, fashion, chunky",
+    "isActive": true,
+    "iconUrl": "categories/platform_icon.png",
+    "bannerUrl": "categories/platform_banner.jpg",
+    "displayOrder": 6,
+    "metaDescription": "Make a bold statement with platform sneakers that add height and style to any outfit.",
+    "filters": [
+      {
+        "name": "Platform Height",
+        "values": ["1-2 inches", "2-3 inches", "3+ inches"]
+      },
+      {
+        "name": "Style",
+        "values": ["High-top", "Low-top", "Slip-on"]
+      },
+      {
+        "name": "Material",
+        "values": ["Canvas", "Leather", "Synthetic", "Mixed"]
+      }
+    ]
+  }
+]

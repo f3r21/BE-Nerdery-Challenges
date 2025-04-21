@@ -1,0 +1,162 @@
+[
+  {
+    "id": 98765,
+    "name": "VelocityWear",
+    "logo": "velocitywear_logo.png",
+    "description": "Pioneering athletic footwear with innovative cushioning technology and performance-driven designs.",
+    "foundedYear": 1978,
+    "website": "https://www.velocitywear.com",
+    "isActive": true,
+    "headquarters": "Portland, USA",
+    "signature": "AirFlow Technology",
+    "socialMedia": {
+      "instagram": "@velocitywear",
+      "twitter": "@velocitywear",
+      "facebook": "VelocityWearOfficial"
+    }
+  },
+  {
+    "id": 223344,
+    "name": "StrideForce",
+    "logo": "strideforce_logo.png",
+    "description": "German engineering meets athletic performance with revolutionary cushioning systems.",
+    "foundedYear": 1952,
+    "website": "https://www.strideforce.com",
+    "isActive": true,
+    "headquarters": "Munich, Germany",
+    "signature": "FlexBoost Technology",
+    "socialMedia": {
+      "instagram": "@strideforce",
+      "twitter": "@strideforce",
+      "facebook": "StrideForceGlobal"
+    }
+  },
+  {
+    "id": 54321,
+    "name": "LegacyStep",
+    "logo": "legacystep_logo.png",
+    "description": "Blending heritage design with modern performance technology for athletic and casual footwear.",
+    "foundedYear": 1962,
+    "website": "https://www.legacystep.com",
+    "isActive": true,
+    "headquarters": "Boston, USA",
+    "signature": "HeritageFlow Design",
+    "socialMedia": {
+      "instagram": "@legacystep",
+      "twitter": "@legacystep",
+      "facebook": "LegacyStepOfficial"
+    }
+  },
+  {
+    "id": 66666,
+    "name": "BalanceTech",
+    "logo": "balancetech_logo.png",
+    "description": "American-made footwear focused on perfect balance and support for runners of all levels.",
+    "foundedYear": 1909,
+    "website": "https://www.balancetech.com",
+    "isActive": true,
+    "headquarters": "Massachusetts, USA",
+    "signature": "BalanceCore Support",
+    "socialMedia": {
+      "instagram": "@balancetech",
+      "twitter": "@balancetech",
+      "facebook": "BalanceTechFootwear"
+    }
+  },
+  {
+    "id": 77777,
+    "name": "ShieldStep",
+    "logo": "shieldstep_logo.png",
+    "description": "Innovative performance footwear designed to enhance athletic capability with cutting-edge materials.",
+    "foundedYear": 1998,
+    "website": "https://www.shieldstep.com",
+    "isActive": true,
+    "headquarters": "Baltimore, USA",
+    "signature": "MicroShield Fabric",
+    "socialMedia": {
+      "instagram": "@shieldstep",
+      "twitter": "@shieldstep",
+      "facebook": "ShieldStepAthletics"
+    }
+  },
+  {
+    "id": 88888,
+    "name": "FlexMotion",
+    "logo": "flexmotion_logo.png",
+    "description": "Japanese-engineered footwear with a focus on motion control and stability for serious runners.",
+    "foundedYear": 1954,
+    "website": "https://www.flexmotion.com",
+    "isActive": true,
+    "headquarters": "Tokyo, Japan",
+    "signature": "GelFlex Technology",
+    "socialMedia": {
+      "instagram": "@flexmotion",
+      "twitter": "@flexmotion",
+      "facebook": "FlexMotionRunning"
+    }
+  },
+  {
+    "id": 11177,
+    "name": "SwiftLeap",
+    "logo": "swiftleap_logo.png",
+    "description": "German-designed athletic and lifestyle footwear with a focus on speed and agility.",
+    "foundedYear": 1950,
+    "website": "https://www.swiftleap.com",
+    "isActive": true,
+    "headquarters": "Herzogenaurach, Germany",
+    "signature": "FormStrip Design",
+    "socialMedia": {
+      "instagram": "@swiftleap",
+      "twitter": "@swiftleap",
+      "facebook": "SwiftLeapOfficial"
+    }
+  },
+  {
+    "id": 55588,
+    "name": "StarTrek",
+    "logo": "startrek_logo.png",
+    "description": "Iconic American footwear company with a century-long tradition of creating timeless canvas sneakers.",
+    "foundedYear": 1912,
+    "website": "https://www.startrek.com",
+    "isActive": true,
+    "headquarters": "Boston, USA",
+    "signature": "Classic Canvas Design",
+    "socialMedia": {
+      "instagram": "@startrek",
+      "twitter": "@startrek",
+      "facebook": "StarTrekFootwear"
+    }
+  },
+  {
+    "id": 99999,
+    "name": "AirDynasty",
+    "logo": "airdynasty_logo.png",
+    "description": "Premium basketball footwear line endorsed by legendary athletes and designed for peak performance.",
+    "foundedYear": 1985,
+    "website": "https://www.airdynasty.com",
+    "isActive": true,
+    "headquarters": "Chicago, USA",
+    "signature": "Dynasty Air Cushioning",
+    "socialMedia": {
+      "instagram": "@airdynasty",
+      "twitter": "@airdynasty",
+      "facebook": "AirDynastyOfficial"
+    }
+  },
+  {
+    "id": 12345,
+    "name": "PeakPerformance",
+    "logo": "peakperformance_logo.png",
+    "description": "Innovative athletic footwear designed for athletes who demand the best in performance and style.",
+    "foundedYear": 1972,
+    "website": "https://www.peakperformance.com",
+    "isActive": true,
+    "headquarters": "Los Angeles, USA",
+    "signature": "ReactAir Technology",
+    "socialMedia": {
+      "instagram": "@peakperf",
+      "twitter": "@peakperf",
+      "facebook": "PeakPerformanceAthletic"
+    }
+  }
+]

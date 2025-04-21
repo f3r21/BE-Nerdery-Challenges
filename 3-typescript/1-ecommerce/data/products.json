@@ -1,0 +1,252 @@
+[
+  {
+    "id": 1001,
+    "name": "SkyStep Pulse X5 Grey",
+    "departmentId": 3001,
+    "categoryId": 4002,
+    "brandId": 98765,
+    "linkId": "skystep-pulse-x5-grey",
+    "refId": "skpx5_1001",
+    "isVisible": true,
+    "description": "Lightweight and durable with responsive cushioning, built for all-day performance. The SkyStep Pulse X5 features innovative air cushioning technology with a sleek, modern design.",
+    "descriptionShort": "Lightweight and responsive cushioning.",
+    "releaseDate": "2024-03-15T00:00:00",
+    "keywords": "SkyStep,Pulse,Grey,Cushioning",
+    "title": "SkyStep Pulse X5 Grey",
+    "isActive": true,
+    "taxCode": "FOOT123",
+    "metaTagDescription": "A new generation athletic design with responsive comfort and all-day support.",
+    "supplierId": 7,
+    "showWithoutStock": false,
+    "adWordsRemarketingCode": "",
+    "lomadeeCampaignCode": "",
+    "score": 4.5,
+    "price": 129.99,
+    "salePrice": 109.99,
+    "onSale": true,
+    "colors": ["Grey", "White", "Black"],
+    "sizes": [7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12],
+    "tags": ["Bestseller", "New Arrival"],
+    "images": [
+      {
+        "id": 10011,
+        "url": "products/skystep-pulse-x5-grey-main.jpg",
+        "alt": "SkyStep Pulse X5 Grey - Main View",
+        "isMain": true
+      }
+    ],
+    "specifications": {
+      "material": "Synthetic mesh upper with rubber outsole",
+      "weight": "280g (size 9)",
+      "cushioning": "Advanced air cushioning system",
+      "closure": "Traditional lace-up",
+      "archSupport": "Neutral"
+    }
+  },
+  {
+    "id": 1002,
+    "name": "UltraFlex Boost 23 Solar Red",
+    "departmentId": 3001,
+    "categoryId": 4001,
+    "brandId": 223344,
+    "linkId": "ultraflex-boost-23-solar-red",
+    "refId": "ufb_2023",
+    "isVisible": true,
+    "description": "Energy-returning foam technology for maximum performance. The UltraFlex Boost 23 provides unmatched energy return with each step, helping you go further with less effort.",
+    "descriptionShort": "Advanced cushioning with vibrant style.",
+    "releaseDate": "2023-11-20T00:00:00",
+    "keywords": "UltraFlex,Boost,Solar Red,Running",
+    "title": "UltraFlex Boost 23 Solar Red",
+    "isActive": true,
+    "taxCode": "SHOES001",
+    "metaTagDescription": "Performance meets style in the UltraFlex Boost 23 with revolutionary cushioning.",
+    "supplierId": 4,
+    "showWithoutStock": true,
+    "adWordsRemarketingCode": "",
+    "lomadeeCampaignCode": "",
+    "score": 4.8,
+    "price": 179.99,
+    "salePrice": 159.99,
+    "onSale": true,
+    "colors": ["Solar Red", "Core Black", "Blue"],
+    "sizes": [7, 8, 9, 10, 11, 12, 13],
+    "tags": ["Featured", "Premium"],
+    "images": [
+      {
+        "id": 10021,
+        "url": "products/ultraflex-boost-23-red-main.jpg",
+        "alt": "UltraFlex Boost 23 Solar Red - Main View",
+        "isMain": true
+      },
+      {
+        "id": 10022,
+        "url": "products/ultraflex-boost-23-red-angle.jpg",
+        "alt": "UltraFlex Boost 23 Solar Red - Angle View",
+        "isMain": false
+      },
+      {
+        "id": 10023,
+        "url": "products/ultraflex-boost-23-red-sole.jpg",
+        "alt": "UltraFlex Boost 23 Solar Red - Sole View",
+        "isMain": false
+      }
+    ],
+    "specifications": {
+      "material": "Primeknit upper with rubber outsole",
+      "weight": "310g (size 9)",
+      "cushioning": "Boost foam technology",
+      "closure": "Lace-up",
+      "archSupport": "Neutral to underpronation"
+    }
+  },
+  {
+    "id": 1003,
+    "name": "Heritage Classic Leather Legacy",
+    "departmentId": 3002,
+    "categoryId": 4010,
+    "brandId": 54321,
+    "linkId": "heritage-classic-leather-legacy",
+    "refId": "hcl_legacy",
+    "isVisible": true,
+    "description": "Retro-inspired silhouette with a modern twist. The Heritage Classic Leather Legacy combines timeless design elements with contemporary comfort features for an authentic vintage feel.",
+    "descriptionShort": "Old school style, modern comfort.",
+    "releaseDate": "2022-09-10T00:00:00",
+    "keywords": "Heritage,Classic,Leather,Legacy,Retro",
+    "title": "Heritage Classic Leather Legacy",
+    "isActive": false,
+    "taxCode": "CLOTH201",
+    "metaTagDescription": "Step into heritage style with the timeless Classic Leather Legacy design.",
+    "supplierId": 9,
+    "showWithoutStock": true,
+    "adWordsRemarketingCode": "",
+    "lomadeeCampaignCode": "",
+    "score": 3.9,
+    "price": 90.0,
+    "salePrice": 75.0,
+    "onSale": true,
+    "colors": ["Chalk", "Black", "Navy"],
+    "sizes": [6, 7, 8, 9, 10, 11, 12],
+    "tags": ["Classic", "Lifestyle"],
+    "images": [
+      {
+        "id": 10031,
+        "url": "products/heritage-classic-leather-legacy-main.jpg",
+        "alt": "Heritage Classic Leather Legacy - Main View",
+        "isMain": true
+      },
+      {
+        "id": 10032,
+        "url": "products/heritage-classic-leather-legacy-side.jpg",
+        "alt": "Heritage Classic Leather Legacy - Side View",
+        "isMain": false
+      },
+      {
+        "id": 10033,
+        "url": "products/heritage-classic-leather-legacy-top.jpg",
+        "alt": "Heritage Classic Leather Legacy - Top View",
+        "isMain": false
+      }
+    ],
+    "specifications": {
+      "material": "Premium leather upper with rubber outsole",
+      "weight": "320g (size 9)",
+      "cushioning": "EVA midsole",
+      "closure": "Traditional lace-up",
+      "archSupport": "Neutral"
+    }
+  },
+  {
+    "id": 1004,
+    "name": "TrainMax 9 Pro White Ice",
+    "departmentId": 3001,
+    "categoryId": 4003,
+    "brandId": 98765,
+    "linkId": "trainmax-9-pro-white-ice",
+    "refId": "tm9p_wi",
+    "isVisible": true,
+    "description": "Built for high-impact workouts with advanced grip technology. The TrainMax 9 Pro delivers exceptional stability and support during intense training sessions with its innovative sole design.",
+    "descriptionShort": "Training-ready with superior stability.",
+    "releaseDate": "2023-01-25T00:00:00",
+    "keywords": "TrainMax,Training,White,Ice,Gym",
+    "title": "TrainMax 9 Pro White Ice Edition",
+    "isActive": true,
+    "taxCode": "TRAIN909",
+    "metaTagDescription": "Strength and stability during intense workouts with cutting-edge grip technology.",
+    "supplierId": 7,
+    "showWithoutStock": false,
+    "adWordsRemarketingCode": "",
+    "lomadeeCampaignCode": "",
+    "score": 4.6,
+    "price": 139.99,
+    "salePrice": null,
+    "onSale": false,
+    "colors": ["White Ice", "Black", "Grey"],
+    "sizes": [7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12],
+    "tags": ["Training", "CrossFit"],
+    "images": [
+      {
+        "id": 10041,
+        "url": "products/trainmax-9-pro-white-ice-main.jpg",
+        "alt": "TrainMax 9 Pro White Ice - Main View",
+        "isMain": true
+      },
+      {
+        "id": 10042,
+        "url": "products/trainmax-9-pro-white-ice-side.jpg",
+        "alt": "TrainMax 9 Pro White Ice - Side View",
+        "isMain": false
+      }
+    ],
+    "specifications": {
+      "material": "Synthetic mesh with rubber grip outsole",
+      "weight": "305g (size 9)",
+      "cushioning": "Responsive foam with heel stabilizer",
+      "closure": "Lace-up with midfoot strap",
+      "archSupport": "High"
+    }
+  },
+  {
+    "id": 1005,
+    "name": "StarStep Platform High Black",
+    "departmentId": 3003,
+    "categoryId": 4022,
+    "brandId": 55588,
+    "linkId": "starstep-platform-high-black",
+    "refId": "ssp_hi_blk",
+    "isVisible": true,
+    "description": "Iconic design with a bold platform sole. The StarStep Platform High combines classic styling with modern elevation for a distinctive look that stands out.",
+    "descriptionShort": "Classic meets elevated comfort.",
+    "releaseDate": "2024-02-05T00:00:00",
+    "keywords": "StarStep,Platform,High,Black,Fashion",
+    "title": "StarStep Platform High Black",
+    "isActive": true,
+    "taxCode": "FASHIONX",
+    "metaTagDescription": "The classic high-top reimagined with platform elevation.",
+    "supplierId": 3,
+    "showWithoutStock": true,
+    "adWordsRemarketingCode": "",
+    "lomadeeCampaignCode": "",
+    "score": 4.4,
+    "price": 85.0,
+    "salePrice": null,
+    "onSale": false,
+    "colors": ["Black", "White", "Red"],
+    "sizes": [5, 6, 7, 8, 9, 10],
+    "tags": ["Fashion", "Trending"],
+    "images": [
+      {
+        "id": 10051,
+        "url": "products/starstep-platform-high-black-main.jpg",
+        "alt": "StarStep Platform High Black - Main View",
+        "isMain": true
+      }
+    ],
+    "specifications": {
+      "material": "Canvas upper with rubber platform sole",
+      "weight": "390g (size 7)",
+      "cushioning": "OrthoLite insole",
+      "closure": "Lace-up",
+      "platformHeight": "2 inches"
+    }
+  }
+]
