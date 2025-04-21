@@ -1,7 +1,7 @@
 /* 
 Challenge: "Find Majority Element";
 
-The function findMajorityElement accepts an array of numbers and returns the majority element if it exists, otherwise returns null. The majority element is the element that appears more than n/2 times in the array.
+The function findMajorityElement accepts an array of numbers and returns the majority element if it exists, otherwise returns null. The majority element is the element that appears more than n/2 (floor of that division) times in the array.
 
 Requirements:
 - The function should handle arrays of any length.
