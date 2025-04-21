@@ -79,27 +79,162 @@
   },
   {
     "id": 4004,
-    "name": "Stability Running",
+    "name": "Hiking & Trail",
     "departmentId": 3001,
-    "description": "Running shoes with additional support features for overpronation and enhanced stability.",
-    "keywords": "stability, support, overpronation, running, control",
+    "description": "Rugged footwear designed for outdoor adventures, featuring enhanced traction and durability for various terrains.",
+    "keywords": "hiking, trail, outdoor, trekking, adventure",
     "isActive": true,
-    "iconUrl": "categories/stability_icon.png",
-    "bannerUrl": "categories/stability_banner.jpg",
+    "iconUrl": "categories/hiking_icon.png",
+    "bannerUrl": "categories/hiking_banner.jpg",
     "displayOrder": 4,
-    "metaDescription": "Specialized running shoes with stability features for runners who need additional support.",
+    "metaDescription": "Durable hiking and trail shoes built to conquer any terrain with comfort and protection.",
     "filters": [
       {
-        "name": "Pronation Control",
-        "values": ["Mild", "Moderate", "Maximum"]
+        "name": "Terrain Type",
+        "values": ["Light Trail", "Technical Trail", "Mountain", "All-Terrain"]
       },
       {
-        "name": "Arch Support",
-        "values": ["Low", "Medium", "High"]
+        "name": "Waterproofing",
+        "values": ["None", "Water-Resistant", "Waterproof"]
       },
       {
-        "name": "Heel Drop",
-        "values": ["0-4mm", "5-8mm", "9-12mm"]
+        "name": "Ankle Height",
+        "values": ["Low", "Mid", "High"]
+      }
+    ]
+  },
+  {
+    "id": 4005,
+    "name": "Basketball Shoes",
+    "departmentId": 3001,
+    "description": "Performance footwear designed for the basketball court with ankle support and impact protection.",
+    "keywords": "basketball, court, ankle support, grip, jump",
+    "isActive": true,
+    "iconUrl": "categories/basketball_icon.png",
+    "bannerUrl": "categories/basketball_banner.jpg",
+    "displayOrder": 5,
+    "metaDescription": "Basketball shoes with superior ankle support, traction, and cushioning for peak performance on the court.",
+    "filters": [
+      {
+        "name": "Player Type",
+        "values": ["Guard", "Forward", "Center", "All-Position"]
+      },
+      {
+        "name": "Cut Height",
+        "values": ["Low-Top", "Mid-Top", "High-Top"]
+      },
+      {
+        "name": "Cushioning",
+        "values": ["Responsive", "Balanced", "Plush"]
+      }
+    ]
+  },
+  {
+    "id": 4006,
+    "name": "Tennis & Court",
+    "departmentId": 3001,
+    "description": "Shoes designed for tennis and other court sports with lateral support and durable outsoles.",
+    "keywords": "tennis, court, racquet sports, lateral movement",
+    "isActive": true,
+    "iconUrl": "categories/tennis_icon.png",
+    "bannerUrl": "categories/tennis_banner.jpg",
+    "displayOrder": 6,
+    "metaDescription": "Tennis shoes engineered for quick directional changes and durability on all court surfaces.",
+    "filters": [
+      {
+        "name": "Court Surface",
+        "values": ["Hard Court", "Clay Court", "Grass Court", "All Court"]
+      },
+      {
+        "name": "Play Style",
+        "values": ["Baseline", "Serve and Volley", "All-Around"]
+      },
+      {
+        "name": "Durability",
+        "values": ["Standard", "Enhanced", "Maximum"]
+      }
+    ]
+  },
+  {
+    "id": 4007,
+    "name": "Golf Shoes",
+    "departmentId": 3001,
+    "description": "Specialized footwear for golf, featuring traction elements for stability during swing and walking comfort for 18 holes.",
+    "keywords": "golf, swing, spikes, green, course",
+    "isActive": true,
+    "iconUrl": "categories/golf_icon.png",
+    "bannerUrl": "categories/golf_banner.jpg",
+    "displayOrder": 7,
+    "metaDescription": "Golf shoes designed for optimal swing stability, walking comfort, and course-ready style.",
+    "filters": [
+      {
+        "name": "Spike Type",
+        "values": ["Spiked", "Spikeless", "Hybrid"]
+      },
+      {
+        "name": "Waterproofing",
+        "values": ["None", "Water-Resistant", "Fully Waterproof"]
+      },
+      {
+        "name": "Style",
+        "values": ["Traditional", "Athletic", "Casual"]
+      }
+    ]
+  },
+  {
+    "id": 4008,
+    "name": "Soccer Cleats",
+    "departmentId": 3001,
+    "description": "Football/soccer boots designed for optimal ball control, traction, and speed on various playing surfaces.",
+    "keywords": "soccer, football, cleats, boots, pitch",
+    "isActive": true,
+    "iconUrl": "categories/soccer_icon.png",
+    "bannerUrl": "categories/soccer_banner.jpg",
+    "displayOrder": 8,
+    "metaDescription": "Performance soccer cleats designed for superior ball feel, traction, and speed on the pitch.",
+    "filters": [
+      {
+        "name": "Surface Type",
+        "values": ["Firm Ground", "Soft Ground", "Artificial Turf", "Indoor"]
+      },
+      {
+        "name": "Player Position",
+        "values": ["Forward", "Midfielder", "Defender", "Goalkeeper"]
+      },
+      {
+        "name": "Upper Material",
+        "values": ["Synthetic", "Leather", "Knit", "Hybrid"]
+      }
+    ]
+  },
+  {
+    "id": 4009,
+    "name": "Track & Field",
+    "departmentId": 3001,
+    "description": "Specialized footwear for various track and field events with features tailored to specific disciplines.",
+    "keywords": "track, field, spikes, sprint, jump, throw",
+    "isActive": true,
+    "iconUrl": "categories/track_icon.png",
+    "bannerUrl": "categories/track_banner.jpg",
+    "displayOrder": 9,
+    "metaDescription": "Specialized track and field shoes designed for maximum performance in sprint, distance, and field events.",
+    "filters": [
+      {
+        "name": "Event Type",
+        "values": ["Sprint", "Middle Distance", "Long Distance", "Field Events"]
+      },
+      {
+        "name": "Spike Configuration",
+        "values": [
+          "Sprint Spikes",
+          "Distance Spikes",
+          "Jump Spikes",
+          "Throw Shoes"
+        ]
+      },
+      {
+        "name": "Surface",
+        "values": ["Indoor Track", "Outdoor Track", "Cross Country"]
       }
     ]
   },
@@ -112,7 +247,7 @@
     "isActive": true,
     "iconUrl": "categories/retro_icon.png",
     "bannerUrl": "categories/retro_banner.jpg",
-    "displayOrder": 5,
+    "displayOrder": 10,
     "metaDescription": "Authentic retro sneakers bringing back classic styles with modern comfort features.",
     "filters": [
       {
@@ -130,6 +265,302 @@
     ]
   },
   {
+    "id": 4011,
+    "name": "Dress Shoes",
+    "departmentId": 3002,
+    "description": "Formal and semi-formal footwear options for professional and special occasions.",
+    "keywords": "formal, dress, business, oxford, derby, loafer",
+    "isActive": true,
+    "iconUrl": "categories/dress_icon.png",
+    "bannerUrl": "categories/dress_banner.jpg",
+    "displayOrder": 11,
+    "metaDescription": "Elegant dress shoes crafted with quality materials for professional settings and special occasions.",
+    "filters": [
+      {
+        "name": "Style",
+        "values": ["Oxford", "Derby", "Loafer", "Monk Strap", "Brogue"]
+      },
+      {
+        "name": "Material",
+        "values": ["Leather", "Patent Leather", "Suede", "Synthetic"]
+      },
+      {
+        "name": "Formality",
+        "values": ["Ultra Formal", "Business Formal", "Business Casual"]
+      }
+    ]
+  },
+  {
+    "id": 4012,
+    "name": "Boots",
+    "departmentId": 3002,
+    "description": "Stylish and functional footwear extending above the ankle, suitable for various occasions and weather conditions.",
+    "keywords": "boots, ankle, chelsea, chukka, combat, winter",
+    "isActive": true,
+    "iconUrl": "categories/boots_icon.png",
+    "bannerUrl": "categories/boots_banner.jpg",
+    "displayOrder": 12,
+    "metaDescription": "Quality boots combining style and functionality for everyday wear and special occasions.",
+    "filters": [
+      {
+        "name": "Boot Type",
+        "values": ["Chelsea", "Chukka", "Desert", "Combat", "Work", "Winter"]
+      },
+      {
+        "name": "Height",
+        "values": ["Ankle", "Mid-Calf", "Knee-High"]
+      },
+      {
+        "name": "Material",
+        "values": ["Leather", "Suede", "Nubuck", "Synthetic", "Canvas"]
+      }
+    ]
+  },
+  {
+    "id": 4013,
+    "name": "Casual Slip-Ons",
+    "departmentId": 3002,
+    "description": "Easy-to-wear footwear options without laces, perfect for everyday casual use.",
+    "keywords": "slip-on, laceless, casual, convenient, easy",
+    "isActive": true,
+    "iconUrl": "categories/slipon_icon.png",
+    "bannerUrl": "categories/slipon_banner.jpg",
+    "displayOrder": 13,
+    "metaDescription": "Convenient slip-on shoes offering effortless style and comfort for everyday wear.",
+    "filters": [
+      {
+        "name": "Style",
+        "values": ["Loafer", "Moccasin", "Deck Shoe", "Espadrille"]
+      },
+      {
+        "name": "Material",
+        "values": ["Canvas", "Leather", "Suede", "Synthetic"]
+      },
+      {
+        "name": "Occasion",
+        "values": ["Casual", "Semi-Formal", "Beach/Water"]
+      }
+    ]
+  },
+  {
+    "id": 4014,
+    "name": "Boat Shoes",
+    "departmentId": 3002,
+    "description": "Nautical-inspired footwear with non-marking soles and water-resistant features, originally designed for use on boats.",
+    "keywords": "boat, deck, nautical, sailing, preppy",
+    "isActive": true,
+    "iconUrl": "categories/boat_icon.png",
+    "bannerUrl": "categories/boat_banner.jpg",
+    "displayOrder": 14,
+    "metaDescription": "Classic boat shoes combining nautical heritage with everyday style and comfort.",
+    "filters": [
+      {
+        "name": "Material",
+        "values": ["Leather", "Canvas", "Synthetic", "Mixed"]
+      },
+      {
+        "name": "Sole Type",
+        "values": ["Siped", "Non-Marking", "Rubber", "EVA"]
+      },
+      {
+        "name": "Style",
+        "values": ["Traditional", "Modern", "Hybrid"]
+      }
+    ]
+  },
+  {
+    "id": 4015,
+    "name": "Loafers & Moccasins",
+    "departmentId": 3002,
+    "description": "Slip-on shoes with a low profile design, no laces, and typically a separate sole.",
+    "keywords": "loafer, moccasin, slip-on, penny, tassel",
+    "isActive": true,
+    "iconUrl": "categories/loafer_icon.png",
+    "bannerUrl": "categories/loafer_banner.jpg",
+    "displayOrder": 15,
+    "metaDescription": "Classic loafers and moccasins offering timeless style with easy slip-on convenience.",
+    "filters": [
+      {
+        "name": "Style",
+        "values": ["Penny Loafer", "Tassel", "Driving Moc", "Bit Loafer"]
+      },
+      {
+        "name": "Material",
+        "values": ["Leather", "Suede", "Patent", "Canvas"]
+      },
+      {
+        "name": "Formality",
+        "values": ["Casual", "Business Casual", "Formal"]
+      }
+    ]
+  },
+  {
+    "id": 4016,
+    "name": "Casual Sneakers",
+    "departmentId": 3002,
+    "description": "Everyday casual footwear focusing on style and comfort rather than athletic performance.",
+    "keywords": "casual, everyday, fashion, streetwear, comfort",
+    "isActive": true,
+    "iconUrl": "categories/casual_sneaker_icon.png",
+    "bannerUrl": "categories/casual_sneaker_banner.jpg",
+    "displayOrder": 16,
+    "metaDescription": "Stylish casual sneakers for everyday wear that prioritize comfort and fashion.",
+    "filters": [
+      {
+        "name": "Style",
+        "values": ["Low-Top", "Mid-Top", "High-Top", "Slip-On"]
+      },
+      {
+        "name": "Material",
+        "values": ["Canvas", "Leather", "Knit", "Suede"]
+      },
+      {
+        "name": "Aesthetic",
+        "values": ["Minimalist", "Streetwear", "Preppy", "Vintage"]
+      }
+    ]
+  },
+  {
+    "id": 4017,
+    "name": "Sandals & Slides",
+    "departmentId": 3002,
+    "description": "Open footwear options for warm weather and casual settings, featuring various strap configurations.",
+    "keywords": "sandals, slides, flip-flops, open, summer",
+    "isActive": true,
+    "iconUrl": "categories/sandals_icon.png",
+    "bannerUrl": "categories/sandals_banner.jpg",
+    "displayOrder": 17,
+    "metaDescription": "Comfortable sandals and slides perfect for warm weather and casual outings.",
+    "filters": [
+      {
+        "name": "Type",
+        "values": [
+          "Slides",
+          "Flip-Flops",
+          "Strappy Sandals",
+          "Fisherman Sandals"
+        ]
+      },
+      {
+        "name": "Material",
+        "values": ["Leather", "Synthetic", "Fabric", "Rubber"]
+      },
+      {
+        "name": "Usage",
+        "values": ["Casual", "Beach", "Athletic", "Dressy"]
+      }
+    ]
+  },
+  {
+    "id": 4018,
+    "name": "Espadrilles",
+    "departmentId": 3002,
+    "description": "Casual summer shoes with woven jute soles and canvas or cotton fabric uppers.",
+    "keywords": "espadrilles, summer, jute, canvas, casual",
+    "isActive": true,
+    "iconUrl": "categories/espadrilles_icon.png",
+    "bannerUrl": "categories/espadrilles_banner.jpg",
+    "displayOrder": 18,
+    "metaDescription": "Classic espadrilles with traditional jute soles and lightweight uppers for summer style.",
+    "filters": [
+      {
+        "name": "Style",
+        "values": ["Slip-On", "Lace-Up", "Platform", "Wedge"]
+      },
+      {
+        "name": "Upper Material",
+        "values": ["Canvas", "Cotton", "Leather", "Hemp"]
+      },
+      {
+        "name": "Pattern",
+        "values": ["Solid", "Striped", "Printed", "Embroidered"]
+      }
+    ]
+  },
+  {
+    "id": 4019,
+    "name": "Driving Shoes",
+    "departmentId": 3002,
+    "description": "Comfortable slip-on shoes with rubber-grommet soles designed to provide grip and comfort while driving.",
+    "keywords": "driving, moccasin, comfort, grip, casual",
+    "isActive": true,
+    "iconUrl": "categories/driving_icon.png",
+    "bannerUrl": "categories/driving_banner.jpg",
+    "displayOrder": 19,
+    "metaDescription": "Classic driving shoes featuring rubber-grommet soles for superior grip and comfort.",
+    "filters": [
+      {
+        "name": "Material",
+        "values": ["Suede", "Leather", "Nubuck", "Synthetic"]
+      },
+      {
+        "name": "Sole Coverage",
+        "values": ["Full Rubber", "Rubber Nubs", "Hybrid"]
+      },
+      {
+        "name": "Style",
+        "values": ["Traditional", "Modern", "Luxury"]
+      }
+    ]
+  },
+  {
+    "id": 4020,
+    "name": "Skate Shoes",
+    "departmentId": 3002,
+    "description": "Durable shoes designed for skateboarding with reinforced areas and grip soles, now popular in streetwear.",
+    "keywords": "skate, skateboarding, street, durable, grip",
+    "isActive": true,
+    "iconUrl": "categories/skate_icon.png",
+    "bannerUrl": "categories/skate_banner.jpg",
+    "displayOrder": 20,
+    "metaDescription": "Durable skate shoes designed for performance on the board and style on the streets.",
+    "filters": [
+      {
+        "name": "Style",
+        "values": ["Low-Top", "Mid-Top", "High-Top"]
+      },
+      {
+        "name": "Cushioning",
+        "values": ["Standard", "Impact", "Vulcanized"]
+      },
+      {
+        "name": "Upper Material",
+        "values": ["Suede", "Canvas", "Leather", "Synthetic"]
+      }
+    ]
+  },
+  {
+    "id": 4021,
+    "name": "Slip-Resistant Work",
+    "departmentId": 3002,
+    "description": "Specialized footwear designed for workplace safety with slip-resistant outsoles and protective features.",
+    "keywords": "work, slip-resistant, safety, restaurant, service",
+    "isActive": true,
+    "iconUrl": "categories/slip_resistant_icon.png",
+    "bannerUrl": "categories/slip_resistant_banner.jpg",
+    "displayOrder": 21,
+    "metaDescription": "Safety-focused work shoes with slip-resistant soles for restaurant and service industry professionals.",
+    "filters": [
+      {
+        "name": "Industry",
+        "values": ["Restaurant", "Healthcare", "Hospitality", "General Service"]
+      },
+      {
+        "name": "Style",
+        "values": ["Clog", "Oxford", "Athletic", "Boot"]
+      },
+      {
+        "name": "Features",
+        "values": [
+          "Water-Resistant",
+          "Oil-Resistant",
+          "Stain-Resistant",
+          "Cushioned"
+        ]
+      }
+    ]
+  },
+  {
     "id": 4022,
     "name": "Platform Sneakers",
     "departmentId": 3003,
@@ -138,7 +569,7 @@
     "isActive": true,
     "iconUrl": "categories/platform_icon.png",
     "bannerUrl": "categories/platform_banner.jpg",
-    "displayOrder": 6,
+    "displayOrder": 22,
     "metaDescription": "Make a bold statement with platform sneakers that add height and style to any outfit.",
     "filters": [
       {
@@ -152,6 +583,58 @@
       {
         "name": "Material",
         "values": ["Canvas", "Leather", "Synthetic", "Mixed"]
+      }
+    ]
+  },
+  {
+    "id": 4023,
+    "name": "Heeled Booties",
+    "departmentId": 3003,
+    "description": "Ankle-height boots with various heel heights, combining style and function for multiple occasions.",
+    "keywords": "booties, ankle boots, heeled, fashion, versatile",
+    "isActive": true,
+    "iconUrl": "categories/booties_icon.png",
+    "bannerUrl": "categories/booties_banner.jpg",
+    "displayOrder": 23,
+    "metaDescription": "Stylish heeled booties for every season, perfect for elevating casual and dressy outfits.",
+    "filters": [
+      {
+        "name": "Heel Height",
+        "values": ["1-2 inches", "2-3 inches", "3+ inches"]
+      },
+      {
+        "name": "Heel Type",
+        "values": ["Block", "Stiletto", "Wedge", "Chunky"]
+      },
+      {
+        "name": "Material",
+        "values": ["Leather", "Suede", "Synthetic", "Textile"]
+      }
+    ]
+  },
+  {
+    "id": 4024,
+    "name": "Ballet Flats",
+    "departmentId": 3003,
+    "description": "Elegant slip-on shoes inspired by ballet slippers, featuring a low profile and minimal heel.",
+    "keywords": "ballet, flats, feminine, elegant, comfortable",
+    "isActive": true,
+    "iconUrl": "categories/ballet_icon.png",
+    "bannerUrl": "categories/ballet_banner.jpg",
+    "displayOrder": 24,
+    "metaDescription": "Classic ballet flats combining timeless elegance with everyday comfort and versatility.",
+    "filters": [
+      {
+        "name": "Style",
+        "values": ["Classic", "Pointed Toe", "Round Toe", "Embellished"]
+      },
+      {
+        "name": "Material",
+        "values": ["Leather", "Suede", "Patent", "Textile"]
+      },
+      {
+        "name": "Feature",
+        "values": ["Cushioned", "Flexible Sole", "Elasticized", "Bow Detail"]
       }
     ]
   }

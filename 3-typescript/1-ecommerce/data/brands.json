@@ -1,5 +1,21 @@
 [
   {
+    "id": "445566",
+    "name": "SportyStep",
+    "logo": "sportystep_logo.png",
+    "description": "Innovative footwear brand specializing in high-performance athletic shoes for all sports.",
+    "foundedYear": 1990,
+    "website": "https://www.sportystep.com",
+    "isActive": true,
+    "headquarters": "Los Angeles, USA",
+    "signature": "SportyStep Cushioning",
+    "socialMedia": {
+      "instagram": "@sportystep",
+      "twitter": "@sportystep",
+      "facebook": "SportyStepOfficial"
+    }
+  },
+  {
     "id": 98765,
     "name": "VelocityWear",
     "logo": "velocitywear_logo.png",
@@ -13,6 +29,22 @@
       "instagram": "@velocitywear",
       "twitter": "@velocitywear",
       "facebook": "VelocityWearOfficial"
+    }
+  },
+  {
+    "id": "22233",
+    "name": "RunTech",
+    "logo": "runtech_logo.png",
+    "description": "Cutting-edge footwear brand focused on performance running shoes with advanced technology.",
+    "foundedYear": 2005,
+    "website": "https://www.runtech.com",
+    "isActive": true,
+    "headquarters": "Seattle, USA",
+    "signature": "TechFlex Cushioning",
+    "socialMedia": {
+      "instagram": "@runtech",
+      "twitter": "@runtech",
+      "facebook": "RunTechOfficial"
     }
   },
   {
