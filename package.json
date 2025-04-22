@@ -5,9 +5,6 @@
   "repository": "git@github.com:ravnhq/BE-Nerdery-Challenges.git",
   "author": "Erick Ventura <erickventura@ravn.co>",
   "license": "MIT",
-  "volta": {
-    "node": "22.11.0"
-  },
   "engines": {
     "node": ">=22.0.0"
   },

@@ -24,15 +24,15 @@ async function analyzeProductPrices(products: any[]): Promise<any> {}
 /**
  *  Challenge 2: Build a Product Catalog with Brand Metadata
  *
- * Create a function that takes in arrays of Product and Brand, and returns a new array of enriched product entries. Each entry should include brand details embedded into the product, under a new brandInfo property (excluding the id and isActive fields).
+ * Create a function that takes arrays of Product and Brand, and returns a new array of enriched product entries. Each entry should include brand details embedded into the product, under a new brandInfo property (excluding the id and isActive fields).
  *  e.g
  *  buildProductCatalog(products: Product[], brands: Brand[]): EnrichedProduct[]
 
   Requirements:
   - it should return an array of enriched product entries with brand details
   - Only include products where isActive is true and their corresponding brand is also active.
-  = If a product’s brandId does not match any active brand, it should be excluded.
-  = The brandInfo field should include the rest of the brand metadata (name, logo, description, etc.).
+  - If a product’s brandId does not match any active brand, it should be excluded.
+  - The brandInfo field should include the rest of the brand metadata (name, logo, description, etc.).
  */
 
 async function buildProductCatalog(

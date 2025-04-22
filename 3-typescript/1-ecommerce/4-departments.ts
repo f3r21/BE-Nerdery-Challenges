@@ -7,7 +7,7 @@
  * - The function should accept an array of Department objects and an array of Product objects.
  * - Each department should include the quantity of products available in that department.
  * - The department should be idetified just by its name and id other properties should be excluded.
- * - In the information of the department, include the amount of products available in that department. and just the name and id of the department and name of the department.
+ * - In the information of the department, include the amount of products available in that department and just the name and id of the department.
  * - Add the name of the products in an array called productsNames inside the department object.
  */
 
