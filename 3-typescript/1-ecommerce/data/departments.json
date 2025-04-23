@@ -1,0 +1,62 @@
+[
+  {
+    "id": 3001,
+    "name": "Athletic Performance",
+    "description": "Footwear designed specifically for athletic activities and sports performance, featuring technical innovations for enhanced performance.",
+    "isActive": true,
+    "displayOrder": 1,
+    "iconUrl": "departments/athletic_icon.png",
+    "bannerUrl": "departments/athletic_banner.jpg",
+    "metaDescription": "Discover high-performance athletic footwear engineered for serious athletes and fitness enthusiasts.",
+    "featuredCategories": [4001, 4003, 4004],
+    "slug": "athletic-performance"
+  },
+  {
+    "id": 3002,
+    "name": "Lifestyle & Casual",
+    "description": "Comfortable and stylish footwear for everyday wear and fashion, blending aesthetic appeal with practical comfort.",
+    "isActive": true,
+    "displayOrder": 2,
+    "iconUrl": "departments/lifestyle_icon.png",
+    "bannerUrl": "departments/lifestyle_banner.jpg",
+    "metaDescription": "Elevate your everyday style with comfortable and fashionable casual footwear options.",
+    "featuredCategories": [4002, 4010],
+    "slug": "lifestyle-casual"
+  },
+  {
+    "id": 3003,
+    "name": "Fashion",
+    "description": "Trend-focused footwear with emphasis on style and design, making bold statements and following current fashion trends.",
+    "isActive": true,
+    "displayOrder": 3,
+    "iconUrl": "departments/fashion_icon.png",
+    "bannerUrl": "departments/fashion_banner.jpg",
+    "metaDescription": "Stay on trend with fashion-forward footwear that makes a statement with every step.",
+    "featuredCategories": [4022],
+    "slug": "fashion"
+  },
+  {
+    "id": 3004,
+    "name": "Sports Specific",
+    "description": "Specialized footwear designed for particular sports and athletic activities, with sport-specific features and technologies.",
+    "isActive": true,
+    "displayOrder": 4,
+    "iconUrl": "departments/sports_icon.png",
+    "bannerUrl": "departments/sports_banner.jpg",
+    "metaDescription": "Specialized footwear engineered for optimal performance in specific sports and activities.",
+    "featuredCategories": [],
+    "slug": "sports-specific"
+  },
+  {
+    "id": 3005,
+    "name": "Action Sports",
+    "description": "Durable footwear designed for skateboarding and other action sports, with enhanced grip and protection features.",
+    "isActive": true,
+    "displayOrder": 5,
+    "iconUrl": "departments/action_icon.png",
+    "bannerUrl": "departments/action_banner.jpg",
+    "metaDescription": "Tough, durable footwear built to withstand the demands of skateboarding and action sports.",
+    "featuredCategories": [],
+    "slug": "action-sports"
+  }
+]
