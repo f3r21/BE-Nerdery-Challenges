@@ -21,6 +21,11 @@ Make sure to carefully read the instructions provided for each challenge before 
 - **[Core Node.js Modules](2-core-nodejs)**  
   Explore the core modules of Node.js and their practical applications.
 
+### 3. TypeScript Challenges
+
+- **[Typescript](3-typescript)**  
+  Explore TypeScript's type system and its application in practical scenarios.
+
 ---
 
 ## ✅ Requisites
