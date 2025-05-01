@@ -20,8 +20,8 @@ palindromeCounter("hello world", 3); // Expected output: 0
 Explanation: No palindromes found
 
 palindromeCounter("Madam level Civic noon", 5);
-Expected output: 2
-Explanation: "Madam" and "level" are palindromes with length >= 5, "Civic" and "noon" have length < 5
+Expected output: 3
+Explanation: "Madam", "level", and "Civic" are palindromes with length >= 5, "noon" has length < 5
 
 Requirements:
 - The function should ignore case when checking if a word is a palindrome (e.g., "Level" is a palindrome).
