@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  postgres-sample:
+    image: postgres:17
+    container_name: postgres-sample
+    environment:
+      POSTGRES_PASSWORD: pass_nerdery
+      POSTGRES_USER: postgres
+      POSTGRES_DB: nerdery_db
+    restart: always
+    ports:
+      - 5432:5432 #you can replace the port in case you already use port 5432
+      # 5434:5432 # e.g port exposed to 5434 locally
+    volumes:
+      - pg-sample-data:/var/lib/postgresql/data
+      - ./init.db:/docker-entrypoint-initdb.d
+volumes:
+  pg-sample-data:
