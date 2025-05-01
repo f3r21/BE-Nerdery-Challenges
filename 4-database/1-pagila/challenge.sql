@@ -16,7 +16,6 @@
     Challenge 2.
     Write a SQL query that finds the top 5 customers who have spent the most money in the Pagila database.
     - The query should return three columns: first_name, last_name, and total_spent
-    - first_name and last_name should display the customer's full name
     - total_spent should show the sum of all payments made by that customer
     - Results should be ordered by total_spent in descending order
     - The query should limit results to only the top 5 highest-spending customers
@@ -32,7 +31,6 @@
     Write a SQL query that lists all film titles that have not been rented in the past 10 years in the Pagila database.
     - The query should return one column: title
     - title should display the name of each film that hasn't been rented
-    - The query should use a subquery to find films not present in recent rental records
     - The time period for "recent" should be within the last 10 years from the current date
     - Results should only include films that have no rental records in this time period
 */
