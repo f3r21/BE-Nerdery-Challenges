@@ -80,7 +80,7 @@
 -- your query here
 
 /*
-    Challenge 07.
+    Challenge 7.
     Find all customers who have not rented movies from every available genre.
     - The result should include the customer's first_name and last_name
     - Only include customers who are missing at least one genre in their rental history
