@@ -7,13 +7,13 @@ services:
     environment:
       POSTGRES_PASSWORD: pass_nerdery
       POSTGRES_USER: postgres
-      POSTGRES_DB: nerdery_db
+      POSTGRES_DB: sample
     restart: always
     ports:
-      - 5432:5432 #you can replace the port in case you already use port 5432
-      # 5434:5432 # e.g port exposed to 5434 locally
+      - 5432:5432
+      # add your port in case you have 5432 in use e.g 5434:5432 for 5434
     volumes:
-      - pg-sample-data:/var/lib/postgresql/data
       - ./init.db:/docker-entrypoint-initdb.d
+      - pg-data:/var/lib/postgresql/data
 volumes:
-  pg-sample-data:
+  pg-data:
