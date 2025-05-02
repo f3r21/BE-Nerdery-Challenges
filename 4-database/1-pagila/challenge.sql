@@ -28,11 +28,11 @@
 
 /*
     Challenge 3.
-    Write a SQL query that lists all film titles that have not been rented in the past 10 years in the Pagila database.
+    Write a SQL query that lists all film titles that have been rented in the past 10 years in the Pagila database.
     - The query should return one column: title
-    - title should display the name of each film that hasn't been rented
+    - title should display the name of each film that has been rented
     - The time period for "recent" should be within the last 10 years from the current date
-    - Results should only include films that have no rental records in this time period
+    - Results should only include films that have rental records in this time period
 */
 
 
