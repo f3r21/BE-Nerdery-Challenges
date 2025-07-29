@@ -103,6 +103,8 @@
     - The top 3 categories by revenue.
     - Finally, refresh the materialized view manually using SQL.
 
+    Once you finish the exercise, please answer the following questions: 
+    
     When would you prefer a materialized view over a regular view? 
     How often should it be refreshed?
 */
