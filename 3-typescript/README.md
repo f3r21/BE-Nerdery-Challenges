@@ -1,47 +1,91 @@
-# TypeScript Module Challenges
+# 3. TypeScript
 
-This repository contains the challenges for the TypeScript module, designed to test and enhance your understanding of TypeScript's type system and its application in practical scenarios.
+Two parts. The first applies TypeScript to a realistic e-commerce dataset; the
+second goes under the hood of the type system itself.
 
-## Structure
+There are no tests here — **the compiler is your test suite.**
 
-The challenges are divided into two main parts:
+## 📝 Part 1: E-commerce
 
-1.  **Ecommerce:** This section focuses on applying TypeScript to model and manipulate data related to an e-commerce platform. It includes three sub-challenges, each dealing with a specific aspect of the e-commerce domain, utilizing data from the JSON files located in the `data` folder within the `1-ecommerce` directory.
+Four exercises in `1-ecommerce/`, built on the JSON files in
+`1-ecommerce/data/`.
 
-    - **1.1 Types:** The goal here is to define precise TypeScript types that accurately represent the structure of the data provided in the JSON files. This emphasizes understanding data shapes and translating them into robust type definitions.
+| File               | Challenge                                                         |
+| ------------------ | ----------------------------------------------------------------- |
+| `1-types.ts`       | Define types that describe the JSON data accurately               |
+| `2-products.ts`    | Price analysis, a brand-enriched catalog, and image filtering     |
+| `3-brands.ts`      | Count products per country, keyed by country name                 |
+| `4-departments.ts` | Reshape departments to id, name, product count, and product names |
 
-    - **1.2 Products:** This challenge involves implementing various code logic related to products using the provided data. The focus is on leveraging TypeScript's type inference capabilities to ensure type safety while performing operations on product data.
+**Start with `1-types.ts`.** The other three build on the types you define
+there, so time spent modelling the data properly pays off immediately.
 
-    - **1.3 Brands:** Similar to the Products challenge, this section requires you to implement code logic specific to brands, again utilizing the data from the JSON files. The emphasis remains on type safety and effective use of TypeScript features.
+As you write them, think about:
 
-    - **1.4 Departments:** This challenge focuses on implementing code logic for departments, using the provided JSON data. You will practice working with typed data to implement the required functionalities.
+- Which properties are genuinely optional versus always present
+- Where a union type describes the data better than a bare `string`
+- Where a fixed set of values calls for an enum
+- How entities relate — a product's `brandId` points at a brand
 
-##### Note
+### Reading the data
 
-You should use the util provide to read the json files. The util is located in the `1-ecommerce/utils` directory and is named `read-json.util.ts`. This utility function reads the JSON files and returns the data in a type-safe manner.
+Use the provided helper, `1-ecommerce/utils/read-json.util.ts`:
 
-2.  **Custom Utility Types and Generics:** This section delves into more advanced TypeScript features, challenging you to create your own utility types and a generic deep clone function.
+```ts
+import { readJsonFile } from "./utils/read-json.util";
 
-    - **2.1 Custom Utility Types:** This challenge presents six exercises where you will recreate built-in utility types like `ReadOnly` and `ReturnType`, as well as build custom ones such as `OmitByType` and `MyAwaited`. These exercises will solidify your understanding of conditional types and type manipulation.
+const products = await readJsonFile<Product>("./data/products.json");
+```
 
-    - **2.2 Deepclone:** This challenge requires you to implement a generic function that can perform a deep clone of any given object. This exercise will test your understanding of generics and how to handle potentially complex object structures in a type-safe manner.
+`readJsonFile<T>` is generic — the type argument you pass is what makes the
+result type-safe.
 
-### Tips for Success
+## 📝 Part 2: Custom Utility Types and Generics
 
-- Read each exercise carefully: Understand the data and its structure before diving into the code.
-- Focus on clear and concise typing: The goal is to make the types as descriptive and type-safe as possible.
-- Use TypeScript features effectively: Leverage features like generics, utility types, and union types to write reusable and type-safe code.
-- Test your code: Ensure that your TypeScript code compiles without errors and behaves as expected.
-- Don't use any or unknown types: The goal is to create type-safe code, so avoid using these types unless absolutely necessary.
+| File                                                        | Challenge                                                                                                |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `2-custom-utility-types-and-generics/2-custom-utilities.ts` | Six exercises: recreate `Readonly` and `ReturnType`, and build `OmitByType`, `If`, `MyAwaited`, and more |
+| `2-custom-utility-types-and-generics/1-deep-clone.ts`       | A generic function that deep-clones any value                                                            |
 
-## Sending for Review
+Each utility-type exercise asks for two things: the type itself, and an example
+showing it works. The example is how you prove it — write one that would fail to
+compile if the type were wrong.
 
-Once you have completed the exercises, send your solutions for review. Make sure to include the following:
+## ✅ Checking your work
 
-- Fork the repository and clone it to your local machine.
-- Create a new branch for your changes.
-- Implement the exercises in the appropriate files.
-- Commit your changes with clear messages.
-- Push your branch to your forked repository.
-- Create a pull request to your repository.
-- Share the link to your pull request with your mentor for review
+Type-check everything without emitting any files:
+
+```bash
+npx tsc --noEmit
+```
+
+> Run it with `--noEmit`. The `tsconfig.json` has no `outDir`, so a bare `tsc`
+> drops compiled `.js` files next to your sources.
+
+Type-checking is your main feedback loop — there's no `ts-node` here. If you
+want to actually execute a file to print something, Node runs TypeScript
+directly:
+
+```bash
+node --experimental-strip-types 3-typescript/1-ecommerce/2-products.ts   # Node 22
+node 3-typescript/1-ecommerce/2-products.ts                             # Node 23+
+```
+
+Note the exercise files don't call their own functions, so add a call at the
+bottom if you want to see output.
+
+## 💡 Tips
+
+- **Don't use `any` or `unknown` in your solutions.** The stubs ship with them
+  as placeholders — replacing them with real types is part of the exercise.
+- `strict` mode is on. If the compiler is complaining, it has usually found
+  something genuine.
+- Let inference do the work. Annotate the inputs and outputs; you rarely need to
+  annotate everything in between.
+- A type error is feedback, not failure. Read the message all the way through —
+  the useful part is often at the end.
+
+## 📤 Submitting
+
+See **[How to submit your work](../README.md#-how-to-submit-your-work)** in the
+root README.
