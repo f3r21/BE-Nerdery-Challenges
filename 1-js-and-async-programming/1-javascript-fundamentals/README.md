@@ -1,43 +1,61 @@
-## JavaScript Fundamentals
+# 1.1 JavaScript Fundamentals
 
-This module includes **5 hands-on exercises**, each designed to help you reinforce core JavaScript concepts.
+Five exercises to sharpen the core JavaScript you'll lean on for everything
+else: string and array manipulation, recursion, and algorithmic thinking.
 
-Every exercise comes with its own set of **unit tests** to verify your solution. Your goal is to implement the code for each exercise and run the corresponding tests to ensure correctness.
+This is the only module with a test suite. Every exercise ships with the tests
+that grade it, so you always know exactly when you're done.
 
-### 🧪 How to Run the Tests
+## 📝 The exercises
 
-Use Jest to execute the test files directly:
+| File                         | Challenge                                                       |
+| ---------------------------- | --------------------------------------------------------------- |
+| `1-time-difference.js`       | Format the gap between two times as `HH:MM:SS`                  |
+| `2-array-rotation.js`        | Rotate an array _n_ positions clockwise, wrapping around        |
+| `3-factorial-chain.js`       | Sum the factorials of `1…n`, return the last digits as a string |
+| `4-palindrome-counter.js`    | Count palindromic words at or above a minimum length            |
+| `5-find-majority-element.js` | Find the element appearing more than `n/2` times, or `null`     |
+
+Each `N-name.js` holds the brief as a comment and an empty function underneath.
+Write your solution in that function.
+
+**Keep the existing `module.exports` line.** The tests import your function
+directly — change the export shape and they'll fail before your logic even runs.
+
+## 🧪 Running the tests
+
+Run one exercise's tests:
 
 ```bash
-npm run test 1-time-difference.spec.js
+npm test -- 1-time-difference.spec.js
 ```
 
-Alternatively, you can listen for file changes and run the tests automatically:
+Or re-run them automatically as you save:
 
 ```bash
-npm run test:watch 1-time-difference.spec.js
+npm run test:watch -- 1-time-difference.spec.js
 ```
 
-### Tips for Success
+Drop the filename to run all five at once:
 
-- Carefully read the description of each exercise.
-- Focus on writing clean and readable code.
-- Apply the concepts covered in the provided learning materials.
+```bash
+npm test
+```
 
-## Sending for Review
+> **Don't edit the `.spec.js` files.** They define what "correct" means for this
+> module. If a test looks wrong to you, that's worth a conversation with your
+> mentor — it usually means the brief is being read differently than intended.
 
-Once you have completed the exercises, send your solutions for review. Make sure to include the following:
+## 💡 Tips
 
-- Fork the repository and clone it to your local machine.
-- Create a new branch for your changes.
-- Implement the exercises in the appropriate files.
-- Commit your changes with clear messages.
-- Push your branch to your forked repository.
-- Create a pull request to your repository.
-- Share the link to your pull request with your mentor for review
+- Read the examples in the challenge comment. They pin down the edge cases the
+  prose leaves vague.
+- Let a failing test guide you. The assertion message tells you the exact input
+  and the expected output.
+- Once the tests are green, reread your solution and clean it up. Green tests
+  are the floor, not the ceiling.
 
-### Additional Resources
+## 📤 Submitting
 
-- [Fork a repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)
-- [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
-- [GitHub Pull Requests](https://docs.github.com/en/pull-requests)
+See **[How to submit your work](../../README.md#-how-to-submit-your-work)** in
+the root README.

@@ -1,56 +1,66 @@
-## Core Node.js Modules
+# 2. Core Node.js Modules
 
-### Wishlist Tracker
+Everything so far has been pure JavaScript. This module is about what **Node**
+adds: reading and writing files, taking input from the command line, and keeping
+data around after the process exits.
 
-In this hands-on exercise, you'll apply the Node.js knowledge you've gained to build a practical command-line application. This project will reinforce your understanding of core Node.js concepts including file system operations, command line interfaces, and data manipulation without relying on external packages.
+You'll build one complete application end to end.
 
-### The Challenge: "Wishlist Tracker"
+## 🎯 The challenge: Wishlist Tracker
 
-**Description**
-Create a simple command-line tool to manage a personal wishlist. Users should be able to add, view, update, and delete items from their wishlist, each with a name, price, and store.
+A command-line tool for managing a personal wishlist. Each item has a **name**,
+a **price**, and a **store**.
 
-**Core Requirements**
+> **No starter code.** This folder contains only this README — the structure is
+> yours to design. Create your files here, in `2-core-nodejs/`.
 
-Use Node.js (no third-party libraries, only built-in modules like fs and readline).
-Implement CRUD Operations:
+### Requirements
 
-Create: Add items with name, price, and store.
-Read: View all wishlist items.
-Update: Edit an existing item. (Select based on incremental generated ID)
-Delete: Remove an item. (Select based on incremental generated ID)
+**Built-in modules only.** No npm packages — no `commander`, no `inquirer`, no
+`chalk`. Reach for `fs`, `readline`, `path`, and `process` instead. Working
+without a framework is the entire point of this module.
 
-Data Persistence:
+**CRUD operations**
 
-Store wishlist data in a JSON file.
-Load and save data automatically.
+- **Create** — add an item with a name, price, and store
+- **Read** — list every item in the wishlist
+- **Update** — edit an existing item, selected by its ID
+- **Delete** — remove an item, selected by its ID
 
-User Interface:
+IDs are generated incrementally and are how the user refers to an item.
 
-Provide a menu-driven interface. (arguments based)
-Handle user input and errors appropriately.
+**Data persistence**
 
-**Bonus Features**
+- Store the wishlist in a JSON file
+- Load it on startup and save on change, so data survives a restart
 
-CSV Export: Export the wishlist to a CSV file with item name, price, and store.
-Wishlist Summary:
+**User interface**
 
-Show the most expensive item, average price, total cost, and the number of items.
+- Drive the tool through command-line arguments
+- Validate input and fail with a clear message — a bad price or an unknown ID
+  should never crash the program
 
-### Tips for sucess
+### Bonus
 
-- Carefully read the description of the exercise.
-- Focus on writing clean and readable code.
-- Apply the concepts covered in the provided learning materials.
-- Use the provided utilities to help you in the implementation.
-- Try to implement the bonus features if you have time.
-- Make sure of your code structure and organization.
+Reach for these once the core tool works:
 
-### Sending for Review
+- **CSV export** — write the wishlist to a `.csv` file with name, price, store
+- **Summary view** — most expensive item, average price, total cost, and item
+  count
 
-Once you have completed the exercise, send your solution for review. Make sure to include the following:
+## 💡 Tips
 
-- Create a new repository and clone it to your local machine.
-- Create your solution for the challenge
-- Commit your changes with clear messages.
-- Send your changes to your repository.
-- Share the link to your repository with your mentor for review.
+- Sketch your commands before writing code. Knowing what
+  `node wishlist.js add --name "Keyboard" --price 120 --store "Logitech"` should
+  do makes the implementation obvious.
+- Separate the pieces: reading and writing the file, parsing arguments, and the
+  wishlist logic itself are three different jobs. Keeping them apart is what
+  makes the bonus features easy to add later.
+- Think about the first run, when the JSON file doesn't exist yet.
+- Node's file APIs come in callback, promise, and sync flavours. Pick one and be
+  consistent.
+
+## 📤 Submitting
+
+See **[How to submit your work](../README.md#-how-to-submit-your-work)** in the
+root README.
