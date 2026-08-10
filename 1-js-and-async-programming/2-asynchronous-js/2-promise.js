@@ -33,6 +33,6 @@ const getUsersWithMoreDislikedMoviesThanLikedMovies = () => {
 getUsersWithMoreDislikedMoviesThanLikedMovies().then((users) => {
   console.log("Users with more disliked movies than liked movies:");
   users.forEach((user) => {
-    console.log(user, age);
+    console.log(user);
   });
 });
