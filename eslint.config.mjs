@@ -7,7 +7,9 @@ import eslintConfigPrettier from "eslint-config-prettier/flat";
 export default defineConfig([
   {
     plugins: {
-      jest: pluginJest, prettier: eslintConfigPrettier, "@typescript-eslint": tseslint.plugin,
+      jest: pluginJest,
+      prettier: eslintConfigPrettier,
+      "@typescript-eslint": tseslint.plugin,
     },
     languageOptions: {
       globals: {

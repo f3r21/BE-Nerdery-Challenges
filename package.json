@@ -9,13 +9,13 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "lint": "yarn run eslint . --ext .js",
-    "lint:fix": "yarn run lint --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "prettier": "prettier . --check",
-    "prettier:fix": "yarn run prettier src --write",
+    "prettier:fix": "prettier . --write",
     "test": "jest",
     "test:watch": "jest --watch",
-    "format": "yarn lint:fix & yarn prettier:fix"
+    "format": "eslint . --fix && prettier . --write"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
