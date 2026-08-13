@@ -80,8 +80,23 @@ WHERE r.rental_date >= current_date - interval '10 years';
 */
 
 
--- your query here
+/*
+// output columns: film.title inventory.inventory_id 
+// grain (one row = ?): one row per unrented inventory copy
+// verb → clause (SUM/COUNT/none): none
+// entities (tables): film, inventory, rental
+// join type (INNER / LEFT / anti-join) + why: left join, keep unmatched rows as null
+// path (ON conditions): film.film_id = inventory.film_id, inventory.inventory_id = rental.inventory_id
+// filter: WHERE (before group) or HAVING (only if an aggregate exists): WHERE
+// assembled skeleton (FROM→WHERE→GROUP BY→HAVING→SELECT→ORDER BY→LIMIT):
+// fan-out check: does any join multiply rows? how did you verify:
+*/
 
+SELECT f.title, i.inventory_id
+FROM film f
+JOIN inventory i ON i.film_id = f.film_id
+LEFT JOIN rental r ON r.inventory_id = i.inventory_id
+WHERE  r.rental_id IS NULL;
 
 
 
