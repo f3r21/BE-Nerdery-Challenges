@@ -54,7 +54,7 @@ LIMIT 5;
     - Results should only include films that have rental records in this time period
 */
 
-
+/*
 // output: title
 // grain: one row per film
 // agg / verbs: -
@@ -63,6 +63,7 @@ LIMIT 5;
 // classify every filter: WHERE
 // order: FROM film JOIN inventory JOIN rental → WHERE rental_date filter → SELECT DISTINCT title
 // did join mult rows?: yes, multiplies. need DISTINCT
+*/
 
 SELECT DISTINCT f.title
 FROM film f
