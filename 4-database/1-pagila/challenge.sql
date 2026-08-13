@@ -23,7 +23,24 @@ ORDER BY film_count DESC;
     - The query should limit results to only the top 5 highest-spending customers
  */
 
- -- your query here
+/*
+// output : first_name, last_name, total_spent
+// grain:  customer
+// agg / verbs: group by, sum, order by desc, limit
+// entities: customer, payment
+// path between them: customer -> payment (customer_id)
+// classify every filter: none
+// order:
+// did join mult rows?:
+*/
+
+SELECT c.first_name, c.last_name, SUM(p.amount) AS total_spent
+FROM customer c
+JOIN payment p ON c.customer_id = p.customer_id
+GROUP BY c.first_name, c.last_name, c.customer_id
+ORDER BY total_spent DESC
+LIMIT 5;
+
 
 
 
