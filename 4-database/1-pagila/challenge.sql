@@ -8,9 +8,11 @@
     - Results should be grouped by category name
  */
 
-
--- your query here
-
+SELECT c.name AS category, count(fc.film_id) AS film_count
+FROM category c
+LEFT JOIN film_category fc ON fc.category_id = c.category_id
+GROUP BY c.name
+ORDER BY film_count DESC;
 
  /*
     Challenge 2.
