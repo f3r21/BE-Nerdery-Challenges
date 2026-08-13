@@ -55,8 +55,20 @@ LIMIT 5;
 */
 
 
--- your query here
+// output: title
+// grain: one row per film
+// agg / verbs: -
+// entities: film, inventory, rental
+// path between them: film.film_id = inventory.film_id, inventory.inventory_id = rental.inventory_id
+// classify every filter: WHERE
+// order: FROM film JOIN inventory JOIN rental → WHERE rental_date filter → SELECT DISTINCT title
+// did join mult rows?: yes, multiplies. need DISTINCT
 
+SELECT DISTINCT f.title
+FROM film f
+JOIN inventory i ON i.film_id = f.film_id
+JOIN rental r ON r.inventory_id = i.inventory_id
+WHERE r.rental_date >= current_date - interval '10 years';
 
 /*
     Challenge 4.
