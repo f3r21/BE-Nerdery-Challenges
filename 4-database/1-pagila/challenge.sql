@@ -108,6 +108,33 @@ WHERE  r.rental_id IS NULL;
     - rental_count should show the total number of times the film was rented
 */
 
+/*
+// output columns: film.title, count(rental.rental_id) as rental_count
+// grain (one row = ?): one row per film
+// verb → clause (SUM/COUNT/none): COUNT rentals per film, AVG those counts
+// entities (tables): film, inventory, rental
+// join type (INNER / LEFT / anti-join) + why: LEFT, avg includes every film
+// path (ON conditions): film.film_id = inventory.film_id, inventory.inventory_id = rental.inventory_id
+// filter: WHERE (before group) or HAVING (only if an aggregate exists): HAVING
+// assembled skeleton (FROM→WHERE→GROUP BY→HAVING→SELECT→ORDER BY→LIMIT):
+// fan-out check: does any join multiply rows? how did you verify:
+*/
+
+SELECT f.title, count(r.rental_id) AS rental_count
+FROM film f
+LEFT JOIN inventory i ON i.film_id = f.film_id
+LEFT JOIN rental r ON r.inventory_id = i.inventory_id
+GROUP BY f.film_id, f.title
+HAVING count(r.rental_id) > (
+    SELECT AVG(film_count)
+    FROM (
+        SELECT count(r2.rental_id) AS film_count
+        FROM film f2
+        LEFT JOIN inventory i2 ON i2.film_id = f2.film_id
+        LEFT JOIN rental r2 ON r2.inventory_id = i2.inventory_id
+        GROUP BY f2.
+    ) AS film_counts
+)
 
 
 -- your query here
