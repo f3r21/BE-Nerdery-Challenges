@@ -179,8 +179,27 @@ ORDER BY rental_span_days DESC;
 */
 
 
--- your query here
+/*
+// output columns: first_name, last_name
+// grain (one row = ?): one row per customer
+// verb → clause (SUM/COUNT/none): COUNT(DISTINCT category_id), COUNT(*)
+// entities (tables): customer, rental, inventory, film, film_category, category
+// join type (INNER / LEFT / anti-join) + why: INNER, excludes zero rentals
+// path (ON conditions): customer.customer_id = rental.customer_id, rental.inventory_id = inventory.inventory_id, inventory.film_id = film.film_id, film.film_id = film_category.film_id
+// filter: WHERE (before group) or HAVING (only if an aggregate exists): HAVING, aggregate result
+// assembled skeleton (FROM→WHERE→GROUP BY→HAVING→SELECT→ORDER BY→LIMIT):
+// fan-out check: does any join multiply rows? how did you verify: yes, 4-way join
+*/
 
+SELECT c.first_name, c.last_name
+FROM customer c
+JOIN rental r ON r.customer_id = c.customer_id
+JOIN inventory i ON i.inventory_id = r.inventory_id
+JOIN film f ON f.film_id = i.film_id
+JOIN film_category fc ON fc.film_id = f.film_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+HAVING COUNT(DISTINCT fc.category_id) < (SELECT COUNT(*) FROM category)
+ORDER BY c.last_name;
 
 /*
     Challenge 8.
