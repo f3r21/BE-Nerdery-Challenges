@@ -149,7 +149,27 @@ HAVING count(r.rental_id) > (
     - Results should be grouped by customer and ordered by rental_span_days in descending order
 */
 
--- your query here
+/*
+// output columns: first_name, last_name, first_rental, last_rental, rental_span_days
+// grain (one row = ?): one row per customer
+// verb → clause (SUM/COUNT/none): MIN, MAX
+// entities (tables): customer, rental
+// join type (INNER / LEFT / anti-join) + why: LEFT
+// path (ON conditions): customer.customer_id = rental.customer_id
+// filter: WHERE (before group) or HAVING (only if an aggregate exists): none
+// assembled skeleton (FROM→WHERE→GROUP BY→HAVING→SELECT→ORDER BY→LIMIT):
+// fan-out check: does any join multiply rows? how did you verify:
+*/
+
+SELECT c.first_name, c.last_name,
+       MIN(r.rental_date) AS first_rental,
+       MAX(r.rental_date) AS last_rental,
+       EXTRACT(DAY FROM MAX(r.rental_date) - MIN(r.rental_date)) AS rental_span_days
+FROM customer c
+LEFT JOIN rental r ON r.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY rental_span_days DESC;
+
 
 /*
     Challenge 7.
