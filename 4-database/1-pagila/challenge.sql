@@ -81,7 +81,7 @@ WHERE r.rental_date >= current_date - interval '10 years';
 
 
 /*
-// output columns: film.title inventory.inventory_id 
+// output columns: film.title inventory.inventory_id
 // grain (one row = ?): one row per unrented inventory copy
 // verb → clause (SUM/COUNT/none): none
 // entities (tables): film, inventory, rental
@@ -132,9 +132,9 @@ HAVING count(r.rental_id) > (
         FROM film f2
         LEFT JOIN inventory i2 ON i2.film_id = f2.film_id
         LEFT JOIN rental r2 ON r2.inventory_id = i2.inventory_id
-        GROUP BY f2.
+        GROUP BY f2.film_id
     ) AS film_counts
-)
+);
 
 
 -- your query here
@@ -177,14 +177,10 @@ HAVING count(r.rental_id) > (
     - The top 3 categories by revenue.
     - Finally, refresh the materialized view manually using SQL.
 
-    Once you finish the exercise, please answer the following questions: 
-    
-    When would you prefer a materialized view over a regular view? 
+    Once you finish the exercise, please answer the following questions:
+
+    When would you prefer a materialized view over a regular view?
     How often should it be refreshed?
 */
 
 -- your work here
-
-
-
-
