@@ -222,4 +222,61 @@ ORDER BY c.last_name;
     How often should it be refreshed?
 */
 
--- your work here
+/*
+// output columns: category, total_revenue
+// grain (one row = ?): one row per category
+// verb → clause (SUM/COUNT/none): SUM(amount)
+// entities (tables): payment, rental, inventory, film, film_category, category
+// join type (INNER / LEFT / anti-join) + why: INNER, category with zero revenue isn't meaningful in a revenue report
+// path (ON conditions): payment.rental_id = rental.rental_id, rental.inventory_id = inventory.inventory_id, inventory.film_id = film.film_id, film.film_id = film_category.film_id, film_category.category_id = category.category_id
+// filter: WHERE (before group) or HAVING (only if an aggregate exists): none
+// assembled skeleton (FROM→WHERE→GROUP BY→HAVING→SELECT→ORDER BY→LIMIT):
+// fan-out check: does any join multiply rows? how did you verify: yes, film_category is many-to-many
+*/
+
+-- only if view already created
+ DROP MATERIALIZED VIEW IF EXISTS revenue_by_category;
+
+-- normal query
+SELECT c.name AS category, SUM(p.amount) AS total_revenue
+FROM payment p
+JOIN rental r ON r.rental_id = p.rental_id
+JOIN inventory i ON i.inventory_id = r.inventory_id
+JOIN film f ON f.film_id = i.film_id
+JOIN film_category fc ON fc.film_id = f.film_id
+JOIN category c ON c.category_id = fc.category_id
+GROUP BY c.name
+ORDER BY total_revenue DESC;
+
+-- query saved as a materialized view
+CREATE MATERIALIZED VIEW revenue_by_category AS
+SELECT c.name AS category, SUM(p.amount) AS total_revenue
+FROM payment p
+JOIN rental r ON r.rental_id = p.rental_id
+JOIN inventory i ON i.inventory_id = r.inventory_id
+JOIN film f ON f.film_id = i.film_id
+JOIN film_category fc ON fc.film_id = f.film_id
+JOIN category c ON c.category_id = fc.category_id
+GROUP BY c.name
+ORDER BY total_revenue DESC;
+
+-- all categories
+SELECT * FROM revenue_by_category;
+-- top 3
+SELECT * FROM revenue_by_category ORDER BY total_revenue DESC LIMIT 3;
+-- refresh it
+REFRESH MATERIALIZED VIEW revenue_by_category;
+
+/*
+- When would you use a materialized view instead of a regular view?
+  A materialized view saves the result and serves it once it's needed.
+  The tradeoff is between computing power and storage.
+  A simple way of deciding would be to materialize every expensive query (lots of joins/aggregations) that exceeds some arbitrary execution time, and gets read way more often than the underlying data changes.
+  However, this approach doesn't take into account the resources of the system running the queries.
+  So, in my opinion, deciding on materialized view is a case-by-case thing. One should take into account available storage and available computing power. Re-running the query is acceptable if saving storage is a priority, and vice versa otherwise.
+
+- How often should this one refresh?
+  For periodical reports, like this one, having data that's a couple hours stale is acceptable.
+  For something like an item's stock, we'd need exact information to avoid over-selling or under-selling.
+  So, refreshing nightly (via a scheduled job) is enough for this case — the report doesn't need to reflect the last few hours of payments, just needs to be reasonably current for whoever checks it the next day.
+*/
