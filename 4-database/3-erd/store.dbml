@@ -1,3 +1,12 @@
+Enum order_status {
+  pending
+  paid
+  processing
+  shipped
+  delivered
+  cancelled
+}
+
 Table user_auth_data {
   id integer [primary key]
   email varchar [unique]
@@ -65,6 +74,7 @@ Table shopping_cart_items {
 
 Table orders {
   id integer [primary key]
+  status order_status [not null]
   user_id integer [not null]
   promo_code_id integer [null]
   discount_amount numeric [null]
@@ -85,7 +95,7 @@ Table order_items {
 Table order_status_history {
   id integer [primary key]
   order_id integer [not null]
-  status varchar
+  status order_status [not null]
   changed_at timestamp
 }
 
