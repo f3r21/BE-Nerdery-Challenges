@@ -116,6 +116,16 @@ Table promo_codes {
   is_active boolean
 }
 
+Table refresh_tokens {
+  id integer [primary key]
+  user_id integer [not null]
+  token_hash varchar [unique]
+  device_name varchar [null]
+  expires_at timestamptz
+  created_at timestamptz
+}
+
+Ref: refresh_tokens.user_id > user_auth_data.id
 Ref: user_auth_data.role_id > user_role.id
 Ref: product_variants.product_id > products.id
 Ref: product_categories.product_id > products.id
