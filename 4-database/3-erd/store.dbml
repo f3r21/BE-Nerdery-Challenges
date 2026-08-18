@@ -4,7 +4,7 @@ Table user_auth_data {
   password_hash varchar
   first_name varchar
   last_name varchar
-  role_id integer
+  role_id integer [not null]
   reset_token varchar [null]
   reset_token_expires_at timestamp [null]
   created_at timestamp
@@ -24,7 +24,7 @@ Table products {
 
 Table product_variants {
   id integer [primary key]
-  product_id integer
+  product_id integer [not null]
   size varchar
   color varchar
   stock integer
@@ -46,26 +46,26 @@ Table product_categories {
 
 Table product_images {
   id integer [primary key]
-  product_id integer
+  product_id integer [not null]
   image_url varchar
 }
 
 Table shopping_carts {
   id integer [primary key]
-  user_id integer [unique]
+  user_id integer [unique, not null] 
   created_at timestamp
 }
 
 Table shopping_cart_items {
   id integer [primary key]
-  cart_id integer
-  product_variant_id integer
+  cart_id integer [not null]
+  product_variant_id integer [not null]
   quantity integer
 }
 
 Table orders {
   id integer [primary key]
-  user_id integer
+  user_id integer [not null]
   promo_code_id integer [null]
   discount_amount numeric [null]
   assigned_delivery_person_id integer [null]
@@ -74,22 +74,22 @@ Table orders {
 
 Table order_items {
   id integer [primary key]
-  order_id integer
-  product_variant_id integer
+  order_id integer [not null]
+  product_variant_id integer [not null]
   quantity integer
   price_at_purchase numeric
 }
 
 Table order_status_history {
   id integer [primary key]
-  order_id integer
+  order_id integer [not null]
   status varchar
   changed_at timestamp
 }
 
 Table order_payments {
   id integer [primary key]
-  order_id integer
+  order_id integer [not null]
   payment_method varchar
   stripe_reference varchar
   amount numeric
@@ -123,7 +123,7 @@ Table refresh_tokens {
   device_name varchar [null]
   expires_at timestamptz
   created_at timestamptz
-}
+} 
 
 Ref: refresh_tokens.user_id > user_auth_data.id
 Ref: user_auth_data.role_id > user_role.id
@@ -131,7 +131,7 @@ Ref: product_variants.product_id > products.id
 Ref: product_categories.product_id > products.id
 Ref: product_categories.category_id > categories.id
 Ref: product_images.product_id > products.id
-Ref: shopping_carts.user_id > user_auth_data.id
+Ref: user_auth_data.id - shopping_carts.user_id
 Ref: shopping_cart_items.cart_id > shopping_carts.id
 Ref: shopping_cart_items.product_variant_id > product_variants.id
 Ref: orders.user_id > user_auth_data.id
