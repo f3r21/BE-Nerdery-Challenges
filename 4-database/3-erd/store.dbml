@@ -68,6 +68,8 @@ Table orders {
   user_id integer [not null]
   promo_code_id integer [null]
   discount_amount numeric [null]
+  subtotal_amount numeric(10,2) [not null]
+  total_amount numeric(10,2) [not null]
   assigned_delivery_person_id integer [null]
   created_at timestamp
 }
