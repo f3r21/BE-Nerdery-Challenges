@@ -103,7 +103,7 @@ Table order_payments {
   id integer [primary key]
   order_id integer [not null]
   payment_method varchar
-  stripe_reference varchar
+  stripe_reference varchar [unique]
   amount numeric
   status varchar
   created_at timestamp
