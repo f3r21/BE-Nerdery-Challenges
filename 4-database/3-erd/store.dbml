@@ -29,6 +29,7 @@ Table products {
   description text
   is_active boolean
   created_at timestamptz
+  deleted_at timestamptz [null]
 }
 
 Table product_variants {
@@ -57,6 +58,7 @@ Table product_images {
   id integer [primary key]
   product_id integer [not null]
   image_url varchar
+  is_primary boolean [not null]
 }
 
 Table shopping_carts {
