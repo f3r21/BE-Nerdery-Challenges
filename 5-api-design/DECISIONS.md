@@ -8,6 +8,23 @@ full-document rewrite, which is why they are settled before the first path is ty
 Same shape as `4-database/3-erd/DECISIONS.md`: what was chosen, what it cost, and why.
 A decision with no "Gave up" line is not a decision, it is a default nobody examined.
 
+## The nine calls
+
+| # | Question | Chose |
+| --- | --- | --- |
+| 1 | Version in the path | `/v1` prefix, carried in `servers.url` |
+| 2 | Error shape | RFC 7807 Problem Details, `application/problem+json` |
+| 3 | Pagination | `{data, meta}` envelope, `offset` / `limit`, `meta.total` |
+| 4 | Field casing | `camelCase`, query parameters included |
+| 5 | Date-time | RFC 3339 with `Z`, full datetimes on filters, `from` inclusive and `to` exclusive |
+| 6 | Money | Integer minor units (cents), no `currency` field |
+| 7 | Status codes | 400 on validation, 404 on another client's order. 403 protects an action, 404 protects a fact |
+| 8 | Tokens | 15 min access, 7 day refresh, rotation on use, per-device sign-out, typed 401 |
+| 9 | Password change | `PATCH /v1/users/me/password` exists, kills every session |
+
+Items 2, 8 and 9 depend on each other. Item 2's `Problem.type` is what makes item 8's
+typed 401 work, and item 8's session eviction is what makes item 9 cheap.
+
 ---
 
 ## 1. Version in the path, or not
@@ -19,11 +36,27 @@ a media type, or nowhere at all.
 and it commits you to the claim that a v2 could exist. No prefix is honest for a service
 with one consumer, and adding a prefix later breaks every client at once.
 
-**Chose:**
+**Chose:** URI versioning, not header or media-type versioning. Every effective URL is
+`/v1/...`.
 
-**Gave up:**
+**The prefix lives in `servers.url`** (`http://localhost:3000/v1`), not repeated on each
+`paths` key. Both render the same URL in Swagger and both are valid OpenAPI; putting it in
+`servers` keeps `paths` keys as pure resource names, which is the same rule as "no schema
+table name appears in the spec" applied to the version. It also means bumping to v2 is one
+line rather than forty. NestJS implements the runtime half with
+`app.enableVersioning({ type: VersioningType.URI })`, which prefixes routes rather than
+requiring the version in every controller path.
 
-**Why:**
+**Gave up:** two things. The URI stops being a pure identifier: `/v1/products/42` and a
+future `/v2/products/42` name the same product under two addresses, which is why strict
+REST prefers versioning by `Accept` header or media type. And the prefix asserts that a v2
+could exist, so "what would v2 be?" is now a fair question with no answer yet.
+
+**Why:** it costs four characters now and cannot be added later without breaking every
+client at once. The asymmetry is the whole argument: the cost of having it and never
+needing it is trivial, the cost of needing it and not having it is a coordinated break.
+The brief's own table lists changing a status code and adding an enum value as breaking
+changes, so the escape hatch is not hypothetical for this API.
 
 ---
 
@@ -40,11 +73,28 @@ Per-endpoint shapes carry more detail but nothing can consume them generically.
 `ValidationPipe` and a **string** when it comes from a plain `NotFoundException`. Pinning
 one shape here means a global exception filter in Week 3 rather than a surprise.
 
-**Chose:**
+**Chose:** RFC 7807 Problem Details. One `Problem` component `$ref`d by every non-2xx
+response, served as `application/problem+json`, with members `type`, `title`, `status`,
+`detail` and `instance`. Validation failures use the spec's extension-member mechanism to
+add an `errors` array of `{field, message}`, which is where `ValidationPipe`'s array goes.
 
-**Gave up:**
+**Gave up:** three things. Nest ships no support for it, so this costs a global exception
+filter in Week 3 plus an explicit `P2002` mapping, and the filter is now load-bearing
+rather than optional. `status` duplicates the HTTP status code in every error body, which
+is redundancy the standard accepts and I inherit. And the `type` URIs are a promise: a
+reviewer can ask what is at the other end of one.
 
-**Why:**
+**Why:** at least three places in this API return the same status code for different
+reasons. Sign-up 409s on a taken email, cancel 409s on an already-shipped order, and
+add-to-cart 409s on insufficient stock. A client that shows the right message has to tell
+them apart, and a status code alone cannot carry that. String-matching `message` is the
+alternative and it breaks the moment the wording changes.
+
+Given that a machine-readable discriminator is required, the remaining choice was between
+inventing a shape and citing one. RFC 7807 is an IETF standard with tooling across
+languages, and its extension-member rule means the validation-error array fits without
+leaving the standard. Inventing `{code, message, details[]}` would have been slightly
+lighter and would have needed defending as a local invention instead.
 
 ---
 
@@ -60,11 +110,34 @@ stable and cannot jump to page 7.
 **Applies to.** Products, categories, order history, and anything added later. The failure
 mode is two collections that paginate differently, which the review round will look for.
 
-**Chose:**
+**Chose:** an envelope, `{ data: [...], meta: { total, limit, offset } }`, with
+`offset` and `limit` as query parameters. `limit` has a default and a documented maximum
+so an unbounded request cannot ask for the whole table. Every collection in this API uses
+this shape, without exception.
 
-**Gave up:**
+**Gave up:** two things, and the first is a correctness cost rather than a cosmetic one.
 
-**Why:**
+Offset pagination **drifts under concurrent writes**. If a product is inserted while a
+client is walking pages, an item from page 1 can reappear on page 2, and an item can be
+skipped entirely. A cursor would have been stable. This is acceptable here because the
+catalogue is manager-edited at low frequency and order history is append-only per user,
+but it is a real property of the API and not a detail.
+
+`meta.total` costs a second `COUNT(*)` per list request, matching the same `WHERE`. On
+order history with five filters applied that count is not free.
+
+**Why:** the envelope is the decision that cannot be undone. Adding `meta` to a bare array
+later changes the response type of every collection at once, which is exactly the break
+the version prefix in item 1 exists to survive, and paying for it in week two of a
+four-week project would be self-inflicted.
+
+`total` is required by the product itself, not by taste: a catalogue with pagination
+controls has to render "page 3 of 18", and the client cannot compute that from a page of
+results. Offset over cursor follows from the same place, because page numbers need
+addressable pages and a cursor cannot jump to page 7.
+
+Offset also matches Prisma's `skip` and `take` directly, so the contract and the Week 3
+query are the same idea rather than a translation.
 
 ---
 
@@ -76,11 +149,31 @@ mode is two collections that paginate differently, which the review round will l
 schema says. A JSON API in `camelCase` needs a mapping layer; one in `snake_case` leaks the
 column names into the contract and couples the two.
 
-**Chose:**
+**Chose:** `camelCase` for every JSON field, and for **query parameters too**:
+`minPrice`, `maxPrice`, `sortBy`, not `min_price`. The schema stays `snake_case`; the two
+are deliberately different vocabularies.
 
-**Gave up:**
+**Gave up:** a mapping layer, and the duplication that comes with it. Every field now has
+a column name and a wire name, and both are maintained. In Week 3 that is `@map("created_at")`
+in the Prisma schema or `@Expose({ name })` in a serializer, one line per field. It also
+means a field can drift: the column and the property can disagree, and nothing catches it
+except review.
 
-**Why:**
+**Why:** the coupling is the thing being avoided, and this week proves it is not
+hypothetical. `user_auth_data` becomes `users` on Thursday because a reviewer asked. If
+the contract exposed column names, that rename would be an API break rather than a schema
+tidy-up. This is the same rule as "no schema table name appears in the spec", applied to
+fields instead of resources, and the version prefix in item 1 exists to survive exactly
+the kind of break it prevents.
+
+Second reason, smaller but real: separating the two names forces the question *what should
+this be called to a client*, which is a different question from what the column is called.
+`is_primary` is a good column name and `isPrimary` is a good field name, but
+`assigned_delivery_person_id` is a good column name and a bad field name. Under coupling
+that distinction never comes up.
+
+The consumer is TypeScript, so `order.createdAt` reads natively and `order.created_at`
+makes every client either rename on receipt or accept a lint warning on every access.
 
 ---
 
@@ -94,11 +187,32 @@ filter on order history.
 A naive local timestamp is the bug `timestamptz` was adopted to prevent, so it should not
 reappear at the API boundary.
 
-**Chose:**
+**Chose:** RFC 3339 with an explicit `Z`, always UTC, `2026-08-19T14:32:00Z`. Declared as
+`type: string, format: date-time` everywhere. The order-history range filter takes **full
+datetimes**, not dates: `?from=2026-08-01T00:00:00Z&to=2026-08-31T23:59:59Z`.
 
-**Gave up:**
+Range semantics, pinned here so no operation has to decide it: **`from` is inclusive,
+`to` is exclusive.** Half-open, so consecutive ranges tile without overlapping or
+dropping a row on the boundary.
 
-**Why:**
+**Gave up:** verbosity, and some client convenience. A UI date picker produces a day, not
+an instant, so the client now converts before calling. That conversion is where a
+timezone bug can still be introduced, except it is now the client's bug and a visible one,
+rather than the server silently guessing which day the user meant.
+
+**Why:** the same argument already settled at the database layer in `47a4d91`, applied one
+layer out. Bare `timestamp` was replaced with `timestamptz` because a UTC server and a
+GMT-6 laptop disagreed about which orders fall in January. Accepting a bare date at the
+API would reintroduce exactly that disagreement, because "2026-08-01" is not an instant
+until somebody picks a timezone, and the server picking silently is the failure.
+
+Full datetimes on the filter make the client state the instant it means. Half-open
+intervals then remove the second ambiguity: with an inclusive `to`, "give me August" and
+"give me September" either both claim midnight on the 1st or neither does, and
+`23:59:59Z` silently drops anything in the final second.
+
+`format: date-time` is also the OpenAPI-native spelling, so the linter and any generated
+client validate it without a custom pattern.
 
 ---
 
@@ -119,11 +233,57 @@ to parse before arithmetic. A float is the one option that is simply incorrect f
 parameters.** Mismatching the params against the response fields is how a frontend divides
 by 100 in one place and not the other.
 
-**Chose:**
+**Chose:** integer minor units. Every money field is `type: integer` and carries a value
+in cents, so 19.99 is `1999`. No `currency` field; the store is single-currency and the
+currency is stated once in `info.description`. The ERD keeps `numeric(10,2)` as storage,
+so cents are a wire format, not a storage format.
 
-**Gave up:**
+Conversion lives in **exactly one place**, the serialization layer, on the way out and on
+the way in. Nowhere else multiplies or divides by 100. Writing that down is the decision;
+without it the conversion ends up in three places and disagrees with itself.
 
-**Why:**
+**Gave up:** three things.
+
+Every client divides by 100, and any client can forget. `1999` in a log needs context to
+read.
+
+`order_payments.amount` pays a **double conversion**. Stripe sends an integer, this schema
+stores a decimal, the API serves an integer, so a value that was never anything but an
+integer makes two round trips through `Decimal`. Storing that one column as cents would
+remove both. Not doing it, because `numeric(10,2)` is exact and the conversion is lossless
+at two decimal places, and because reopening the ERD costs a commit on a pass that is
+already full.
+
+And the omitted `currency` is a bet that this store stays single-currency.
+
+**Why:** the constraint is not a preference, and it was measured rather than assumed.
+Prisma represents a `numeric` column with `Prisma.Decimal`, which is Decimal.js, and
+Decimal.js defines `toJSON` as `toString`. Verified directly:
+
+```
+JSON.stringify({ price: new Decimal('19.99'), total: new Decimal('1234.50') })
+  ->  {"price":"19.99","total":"1234.5"}
+```
+
+So `{type: number}` is a contract the implementation contradicts on day one. Note the
+second field: **`1234.50` comes back as `"1234.5"`**, because Decimal.js drops the trailing
+zero. A decimal-string API would hand clients a value that needs re-padding before display,
+which integer cents avoids entirely. That rules out the float option
+before taste enters, and float is wrong for money regardless.
+
+Between integer cents and a decimal string, Stripe decides it: its API already speaks
+integer minor units, so cents at this boundary means the payment path contains no
+conversion at all, and that is the one path where a rounding error costs real money. A
+decimal string would also be exact, but JavaScript has no decimal type, so every client
+parses `"19.99"` into a float anyway and the exactness is lost at the first arithmetic.
+
+The `currency` omission is safe because **adding a field to a response is non-breaking for
+a tolerant reader**, which is the normal case and the one this API's consumer is. It is not
+universally safe: a client generated against a schema with `additionalProperties: false`,
+or one validating responses strictly, would reject the new field. That is a real caveat and
+not a reason to add the field now.
+Getting the money *type* wrong is not reversible in the same way, which is why the effort
+went there.
 
 ---
 
@@ -141,11 +301,73 @@ requires that a 400, a 401, a 404 and a 409 all render something.
 | 403 vs 404 | Whether "you may not see this" leaks that the resource exists |
 | 409 vs 422 | Conflict with current state, or invalid regardless of state |
 
-**Chose:**
+**Chose:** the floor below. Full per-endpoint mapping and the header obligations are in
+the reading note, `Week 2 - REST Design + NestJS Foundations/REST Design/HTTP Status Codes`.
 
-**Gave up:**
+| Situation | Code |
+| --- | --- |
+| Validation failure on any body | **400** |
+| Missing, expired, or revoked token | 401, with `WWW-Authenticate` |
+| Client hitting a manager-only endpoint | 403 |
+| Client requesting another client's order | **404** |
+| Resource genuinely absent | 404 |
+| Email already registered, cancel after shipped, ordering more than the stock on hand | 409 |
+| Setting a stock value below zero, or referencing a variant that does not exist | 422 |
+| Reset-password rate limit | 429 |
+| Stripe webhook, bad signature | 400, and see the note below |
+| Stripe webhook, replay of an applied event | **200** |
+| Uncaught | 500 |
 
-**Why:**
+**403 protects an action, 404 protects a fact.** Both appear in this spec for
+authorization failures and the split is deliberate. 403 when the endpoint is forbidden
+whichever resource is named, because the endpoint's existence is already public in this
+document and refusing it leaks nothing. 404 when answering at all would leak the
+existence of a specific row: `GET /v1/orders/8123` returning 403 tells an attacker that
+order exists and belongs to someone else.
+
+**Gave up:** precision on validation, and honesty on ownership.
+
+422 is the semantically exact code for a body that parsed and then failed the rules, and
+400 is the generic client error. That precision is given up because the `Problem` object
+from item 2 already carries `errors[]`, so the status code was never the thing
+discriminating a validation failure from anything else.
+
+404-on-ownership means the API lies to a legitimate user who mistypes their own order id:
+they are told it does not exist when it does. That is the accepted cost of not confirming
+existence to an attacker walking ids.
+
+**Why:** 400 is Nest's `ValidationPipe` default, so choosing it means the contract and the
+framework agree without configuration, and every override is a place they can silently
+drift apart.
+
+404-over-403 is the standard leak-prevention answer and the source states it outright: 404
+is the documented choice *"when the server does not wish to reveal exactly why the request
+has been refused."* Order ids are sequential integers in this schema, so an attacker can
+walk them, and a 403/404 difference turns that walk into an enumeration of which orders
+exist.
+
+**Week 3 consequence, recorded because the implementation will drift here.** CASL's natural
+failure is `ForbiddenException`, which is 403. Honouring the 404 above means the ownership
+check must deliberately throw `NotFoundException` instead. Every `409` promised above also
+needs Prisma `P2002` mapped, or it surfaces as a 500 and the contract lies.
+
+The **stock split** is the 409-versus-422 distinction from the table above, applied twice
+and easy to misread as a contradiction. Ordering 5 units when 3 remain is a conflict with
+current state: restock and the same request succeeds, so 409. Setting stock to -5, or
+naming a variant id that does not exist, is invalid whatever the state, so 422.
+
+The webhook `200` on replay is not a style choice. Stripe's own documentation: *"Stripe
+attempts to deliver events to your destination for up to three days with an exponential
+back off in live mode."* Returning 409 for a duplicate therefore buys three days of
+retries. Stripe also documents the dedup strategy directly, recommending that endpoints log
+processed event ids and skip already-logged ones, which is what `UNIQUE(stripe_reference)`
+in the ERD implements at the database instead of in memory.
+
+Note that Stripe counts **every** 4xx as a delivery failure and retries it, the 400 above
+included. That is harmless here only because a genuine Stripe delivery carries a valid
+signature, so the 400 path is unreachable for real traffic. Their signature check also has
+a default 5-minute timestamp tolerance, which is the replay-attack defence and is separate
+from the application-level dedup above.
 
 ---
 
@@ -166,11 +388,64 @@ authored against a different assumption.
   number in `info.description` rather than leaving it implicit; it is the first thing a
   reviewer will probe.
 
-**Chose:**
+**Chose:** access token 15 minutes, refresh token 7 days, rotation on every refresh,
+per-device sign-out, and a typed 401. In full:
 
-**Gave up:**
+**Lifetimes.** Access token 15 minutes, refresh token 7 days. Both stated in
+`info.description`, not left implicit.
+
+**`POST /v1/auth/refresh`.** Refresh token in the request body, not a cookie. **Rotates on
+every use:** the presented row is deleted and a new one issued. If a refresh token that has
+already been rotated is presented again, every refresh row for that user is deleted, on the
+assumption that the token was stolen and replayed.
+
+**`POST /v1/auth/signout`.** Deletes the presented device's row only, returns 204. Password
+change and password reset delete **every** row for that user.
+
+**401 means "this access token is not usable, try refreshing."** The `Problem.type` from
+item 2 says which case it is: token expired, refresh row gone, or credentials rejected.
+
+**Gave up:** four things.
+
+Rotation costs a write on every refresh, where reuse would have cost none, and it adds a
+reuse-detection path that has to be implemented and tested rather than described.
+
+A body-carried refresh token is readable by JavaScript, so XSS can steal it. An `httpOnly`
+cookie would not be.
+
+Per-device sign-out plus kill-all-on-password-change is two code paths where one would do.
+
+And 15 minutes is a real window: an evicted attacker keeps a working access token for up
+to 15 minutes after a password reset. Nothing here closes that; the decision is to bound
+it and say so.
 
 **Why:**
+
+**Body over cookie** because the cookie trades an XSS problem for a CSRF problem, needs
+`SameSite` and probably a CSRF token, is awkward for a non-browser client, and breaks the
+Swagger "try it out" check the brief requires. The XSS exposure is accepted with that
+named as the reason.
+
+**Rotation** because "what if the refresh token is stolen" is the obvious follow-up to
+choosing a token table over `tokens_valid_from`, and without rotation the honest answer is
+"it works for seven days and I never find out." With rotation a stolen token is usable
+once, and the replay is the detection signal.
+
+**Per-device sign-out, all-devices on password change**, because these answer different
+questions. Signing out on a laptop should not kill a phone. But the password-reset email
+exists precisely so a user can evict an attacker, and per-device sign-out cannot do that,
+so the eviction case gets the broader delete. This also settles item 9 below, since it is
+the same mechanism.
+
+**A typed 401** because a bare one leaves the client unable to distinguish "refresh and
+retry" from "send them to the login screen", and a client that guesses will loop. This is
+the payoff for RFC 7807 in item 2.
+
+**Stating the lifetime** because the revocation lag is this design's known weakness and it
+is currently undocumented, which is the worst state for it to be in. Written down it is a
+bounded property with a number attached rather than a hole a reviewer discovers. 15 minutes
+is conventional and defensible in both directions: shorter means more refresh traffic,
+longer means a wider eviction window.
 
 ---
 
@@ -184,11 +459,36 @@ password"*, which is broader than the forgot/reset flow. Does a guarded
 changing a password should kill other devices, that is refresh-token deletion, and the
 endpoint has to say so.
 
-**Chose:**
+**Chose:** `PATCH /v1/users/me/password` exists. Guarded. Body carries the current
+password and the new one. Wrong current password is **401**, not 403, because it is an
+authentication failure rather than a permissions one. On success it fires the same
+password-change email as the reset flow, deletes **every** refresh row for that user
+including the caller's own, and returns 204. The caller signs in again.
 
-**Gave up:**
+So a password changes by exactly two doors, and both end in the same place: this endpoint,
+and the forgot/reset flow.
 
-**Why:**
+**Gave up:** one more operation, one more guard, and a second entry point into the email
+and session-eviction paths, which is a second place they can be got wrong. Deleting the
+caller's own refresh row also means the flow ends by kicking the user out, which reads as
+hostile unless the client explains it.
+
+**Why:** the brief's email trigger is *"when the user changes their password"*, which is
+wider than forgot/reset. Without this endpoint a signed-in user who simply wants a new
+password has to sign out and ask for an email, and the brief's wording is only partly
+met.
+
+The cost is genuinely small because item 8 already built the interesting half. Killing
+every session on a password change was decided there, so this endpoint reuses that
+mechanism rather than introducing one.
+
+Requiring the current password is what makes it a re-authentication rather than a
+privilege escalation: a stolen access token, valid for up to 15 minutes under item 8,
+cannot be used to seize the account outright. That is the same 15-minute window named
+there, closed at the one endpoint where it would do the most damage.
+
+Deleting the caller's own row is deliberate. A credential change should not leave any
+session alive on the old credential, including the one that made the change.
 
 ---
 
