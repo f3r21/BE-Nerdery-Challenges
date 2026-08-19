@@ -105,7 +105,8 @@ components:
   schemas:
 
     # ---- Errors, DECISIONS.md item 2 ----------------------------------------
-    # RFC 7807. Served as application/problem+json, never application/json.
+    # RFC 9457, which obsoletes RFC 7807. Served as application/problem+json, never
+    # application/json.
     Problem:
       type: object
       required: [type, title, status]

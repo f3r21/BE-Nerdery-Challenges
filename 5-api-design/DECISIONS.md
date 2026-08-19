@@ -13,7 +13,7 @@ A decision with no "Gave up" line is not a decision, it is a default nobody exam
 | # | Question | Chose |
 | --- | --- | --- |
 | 1 | Version in the path | `/v1` prefix, carried in `servers.url` |
-| 2 | Error shape | RFC 7807 Problem Details, `application/problem+json` |
+| 2 | Error shape | RFC 9457 Problem Details, `application/problem+json` |
 | 3 | Pagination | `{data, meta}` envelope, `offset` / `limit`, `meta.total` |
 | 4 | Field casing | `camelCase`, query parameters included |
 | 5 | Date-time | RFC 3339 with `Z`, full datetimes on filters, `from` inclusive and `to` exclusive |
@@ -74,10 +74,17 @@ Per-endpoint shapes carry more detail but nothing can consume them generically.
 `ValidationPipe` and a **string** when it comes from a plain `NotFoundException`. Pinning
 one shape here means a global exception filter in Week 3 rather than a surprise.
 
-**Chose:** RFC 7807 Problem Details. One `Problem` component `$ref`d by every non-2xx
+**Chose:** RFC 9457 Problem Details, which obsoletes RFC 7807. One `Problem` component
+`$ref`d by every non-2xx
 response, served as `application/problem+json`, with members `type`, `title`, `status`,
 `detail` and `instance`. Validation failures use the spec's extension-member mechanism to
 add an `errors` array of `{field, message}`, which is where `ValidationPipe`'s array goes.
+
+**A `type` is not needed on every problem.** RFC 9457 registers `about:blank`, meaning the
+problem has no semantics beyond the HTTP status code, and it is the assumed value when
+`type` is absent. So a type URI is minted only where the status code alone cannot tell a
+client which failure it hit. Here that is the three 401 cases and the three 409 cases.
+Everything else omits it.
 
 **Gave up:** three things. Nest ships no support for it, so this costs a global exception
 filter in Week 3 plus an explicit `P2002` mapping, and the filter is now load-bearing
@@ -92,7 +99,7 @@ them apart, and a status code alone cannot carry that. String-matching `message`
 alternative and it breaks the moment the wording changes.
 
 Given that a machine-readable discriminator is required, the remaining choice was between
-inventing a shape and citing one. RFC 7807 is an IETF standard with tooling across
+inventing a shape and citing one. RFC 9457 is an IETF standard with tooling across
 languages, and its extension-member rule means the validation-error array fits without
 leaving the standard. Inventing `{code, message, details[]}` would have been slightly
 lighter and would have needed defending as a local invention instead.
@@ -190,7 +197,9 @@ reappear at the API boundary.
 
 **Chose:** RFC 3339 with an explicit `Z`, always UTC, `2026-08-19T14:32:00Z`. Declared as
 `type: string, format: date-time` everywhere. The order-history range filter takes **full
-datetimes**, not dates: `?from=2026-08-01T00:00:00Z&to=2026-08-31T23:59:59Z`.
+datetimes**, not dates. August is
+`?from=2026-08-01T00:00:00Z&to=2026-09-01T00:00:00Z`, not `2026-08-31T23:59:59Z`, which is
+the trap the half-open rule below exists to avoid.
 
 Range semantics, pinned here so no operation has to decide it: **`from` is inclusive,
 `to` is exclusive.** Half-open, so consecutive ranges tile without overlapping or
@@ -445,7 +454,7 @@ the same mechanism.
 
 **A typed 401** because a bare one leaves the client unable to distinguish "refresh and
 retry" from "send them to the login screen", and a client that guesses will loop. This is
-the payoff for RFC 7807 in item 2.
+the payoff for RFC 9457 in item 2.
 
 **Stating the lifetime** because the revocation lag is this design's known weakness and it
 is currently undocumented, which is the worst state for it to be in. Written down it is a
