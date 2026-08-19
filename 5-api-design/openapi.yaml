@@ -90,13 +90,162 @@ paths:
                   accessToken:
                     type: string
         '400':
-          description: Malformed request body
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Credentials rejected
+          $ref: '#/components/responses/Unauthorized'
 
 components:
+
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  schemas:
+
+    # ---- Errors, DECISIONS.md item 2 ----------------------------------------
+    # RFC 7807. Served as application/problem+json, never application/json.
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: Identifies the problem kind. Two requests that failed for the
+            same reason carry the same type.
+          example: https://tshirt.store/problems/email-taken
+        title:
+          type: string
+          description: A short summary of the problem kind. It does not change between
+            occurrences.
+          example: Email already registered
+        status:
+          type: integer
+          description: The HTTP status code. It repeats the status line.
+          example: 409
+        detail:
+          type: string
+          description: What went wrong in this specific occurrence.
+          example: An account with this email already exists.
+        instance:
+          type: string
+          format: uri
+          description: Identifies this occurrence.
+        errors:
+          type: array
+          description: Extension member. Present only on a 400 from request validation.
+            One entry per rejected field.
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field:
+                type: string
+                example: email
+              message:
+                type: string
+                example: must be a valid email address
+
+    # ---- Pagination, DECISIONS.md item 3 ------------------------------------
+    # Every collection returns this envelope. No endpoint returns a bare array.
+    PageMeta:
+      type: object
+      required: [total, limit, offset]
+      properties:
+        total:
+          type: integer
+          description: Rows matching the filter, before limit and offset apply.
+          example: 347
+        limit:
+          type: integer
+          description: Rows in this page. The default is 20 and the maximum is 100.
+          default: 20
+          maximum: 100
+          example: 20
+        offset:
+          type: integer
+          description: Rows skipped. Offset pagination drifts if rows are inserted
+            during a scan.
+          default: 0
+          example: 40
+
+    # ---- Money, DECISIONS.md item 6 -----------------------------------------
+    Money:
+      type: integer
+      description: An amount in minor units. 1999 means 19.99. The store is
+        single-currency and prices are in USD.
+      example: 1999
+
+    # ---- Enums --------------------------------------------------------------
+    # `delivered` and DELIVERY_PERSON belong to the Optional Features. The
+    # operations that use them are out of scope for this contract. The values stay
+    # so the contract and the Week 1 ERD describe the same domain.
+    OrderStatus:
+      type: string
+      enum: [pending, paid, processing, shipped, delivered, cancelled]
+    Role:
+      type: string
+      enum: [MANAGER, CLIENT, DELIVERY_PERSON]
+
+  responses:
+
+    # Every non-2xx response $refs one of these. DECISIONS.md item 7.
+    BadRequest:
+      description: The request body failed validation. `errors` names each rejected field.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Unauthorized:
+      description: No token, an expired token, or a refresh row that no longer exists.
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+          description: Required on every 401.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Forbidden:
+      description: Authenticated, and not allowed to perform this action. The endpoint
+        is forbidden whichever resource is named, so refusing it leaks nothing.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: No such resource, or one this caller may not know exists. Answering
+        403 here would confirm the row exists, so ownership failures return 404.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: The request conflicts with the current state. The same request can
+        succeed later.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnprocessableEntity:
+      description: Well formed, and invalid whatever the state. The same request cannot
+        succeed later.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    TooManyRequests:
+      description: Rate limit reached.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    InternalServerError:
+      description: The server failed. The caller may retry the same request.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
