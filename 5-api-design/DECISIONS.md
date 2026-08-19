@@ -55,8 +55,9 @@ could exist, so "what would v2 be?" is now a fair question with no answer yet.
 **Why:** it costs four characters now and cannot be added later without breaking every
 client at once. The asymmetry is the whole argument: the cost of having it and never
 needing it is trivial, the cost of needing it and not having it is a coordinated break.
-The brief's own table lists changing a status code and adding an enum value as breaking
-changes, so the escape hatch is not hypothetical for this API.
+The brief's breaking-change table lists changing a status code as a break, so the escape
+hatch is not hypothetical for this API. Adding a value to a response enum is also breaking
+for a consumer with an exhaustive switch, which is my own reading and is not in the table.
 
 ---
 
@@ -348,10 +349,13 @@ exist. Note this does not depend on the ids being strictly sequential: `store.db
 `id integer [primary key]` with no `increment`, so nothing in the ERD promises a sequence.
 Guessability is enough.
 
-**Week 3 consequence, recorded because the implementation will drift here.** CASL's natural
-failure is `ForbiddenException`, which is 403. Honouring the 404 above means the ownership
-check must deliberately throw `NotFoundException` instead. Every `409` promised above also
-needs Prisma `P2002` mapped, or it surfaces as a 500 and the contract lies.
+**Week 3 consequence, recorded because the implementation will drift here.** CASL throws its
+own `ForbiddenError`, from `@casl/ability`. Measured 2026-08-19: its prototype chain is
+`Error -> Object`, and it carries neither `.status` nor `.getStatus()`, so it is **not** a
+Nest `HttpException`. An uncaught one is therefore rendered as **500**, not 403. Two
+mappings are needed, not one: `ForbiddenError` to a 403 for role failures, and to a 404 for
+ownership failures per the rule above. Every `409` promised above also needs Prisma `P2002`
+mapped, or it surfaces as a 500 and the contract lies.
 
 The **stock split** is the 409-versus-422 distinction from the table above, applied twice
 and easy to misread as a contradiction. Ordering 5 units when 3 remain is a conflict with
