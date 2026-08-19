@@ -342,9 +342,11 @@ drift apart.
 
 404-over-403 is the standard leak-prevention answer and the source states it outright: 404
 is the documented choice *"when the server does not wish to reveal exactly why the request
-has been refused."* Order ids are sequential integers in this schema, so an attacker can
-walk them, and a 403/404 difference turns that walk into an enumeration of which orders
-exist.
+has been refused."* Order ids are plain integers in this schema, not opaque, so a client can
+guess them, and a 403/404 difference turns guessing into an enumeration of which orders
+exist. Note this does not depend on the ids being strictly sequential: `store.dbml` declares
+`id integer [primary key]` with no `increment`, so nothing in the ERD promises a sequence.
+Guessability is enough.
 
 **Week 3 consequence, recorded because the implementation will drift here.** CASL's natural
 failure is `ForbiddenException`, which is 403. Honouring the 404 above means the ownership

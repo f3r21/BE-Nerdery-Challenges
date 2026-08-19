@@ -24,6 +24,15 @@ info:
 
     Written against ERD commit `8d47aae` on `challenge/erd`.
 
+    **Money.** Every amount is an integer in minor units. 1999 means 19.99. The store
+    is single-currency and prices are in USD. No response carries a currency field.
+
+    **Tokens.** An access token is valid for 15 minutes. A refresh token is valid for
+    7 days and rotates on every use. Sign-out deletes the presented device's refresh
+    row. It does not revoke an access token that is already issued, so revocation lags
+    by up to 15 minutes. Changing or resetting a password deletes every refresh row for
+    that user.
+
 servers:
   - url: http://localhost:3000/v1
     description: Local development. The /v1 prefix lives here, not on each path key.
@@ -36,10 +45,12 @@ security:
   - bearerAuth: []
 
 paths:
-  # TODO: the one operation below is a placeholder to keep the document valid and to
-  # prove the linters and editor.swagger.io accept it. Its path shape, its /v1 prefix
-  # (or absence of one) and its error responses are all DECISIONS.md calls. Rewrite it
-  # there, do not build on it as-is.
+  # Path keys carry NO version prefix. The /v1 lives in servers.url, so writing
+  # `/v1/products` here produces the URL /v1/v1/products. DECISIONS.md item 1.
+  #
+  # TODO: the operation below is a placeholder. It exists to keep the document valid and
+  # to prove the linters and editor.swagger.io accept it. Its request and response shapes
+  # predate the components layer. Replace it when the auth block is authored.
   /auth/sign-in:
     post:
       tags: [auth]
@@ -49,8 +60,9 @@ paths:
 
         Send the email and the password. The server returns an access token.
 
-        This operation does not return a refresh token yet. DECISIONS.md item 8 sets the
-        sign-out and revocation rules. Specify `POST /auth/refresh` after that.
+        This operation returns an access token only. A later commit adds the refresh
+        token to this response, and adds `POST /auth/refresh`. DECISIONS.md item 8 sets
+        both.
       operationId: signIn
       security: []
       requestBody:
