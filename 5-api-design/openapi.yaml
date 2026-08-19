@@ -107,16 +107,40 @@ components:
     # ---- Errors, DECISIONS.md item 2 ----------------------------------------
     # RFC 9457, which obsoletes RFC 7807. Served as application/problem+json, never
     # application/json.
+
+    # The closed set of problem kinds this API emits. A client branches on this value and
+    # on nothing else. Only failures the status code cannot tell apart get a member here;
+    # everything else omits `type`, which RFC 9457 defines as `about:blank`, meaning no
+    # semantics beyond the status code.
+    #
+    # These URIs are identifiers first. RFC 9457 says consumers SHOULD NOT dereference them
+    # automatically. Week 3 serves a short page per member at /problems/{slug}.
+    ProblemType:
+      type: string
+      format: uri
+      enum:
+        # 401, and a client must tell these apart or it loops between refreshing and
+        # sending the user back to the login screen.
+        - https://tshirt.store/problems/invalid-credentials
+        - https://tshirt.store/problems/access-token-expired
+        - https://tshirt.store/problems/refresh-token-unknown
+        # 409, and a client must tell these apart to show the right message.
+        - https://tshirt.store/problems/email-taken
+        - https://tshirt.store/problems/order-not-cancellable
+        - https://tshirt.store/problems/insufficient-stock
+
     Problem:
       type: object
       required: [type, title, status]
       properties:
         type:
-          type: string
-          format: uri
-          description: Identifies the problem kind. Two requests that failed for the
-            same reason carry the same type.
-          example: https://tshirt.store/problems/email-taken
+          allOf:
+            - $ref: '#/components/schemas/ProblemType'
+          description: >
+            Identifies the problem kind. Two requests that failed for the same reason
+            carry the same value. Absent means `about:blank`: the status code is the
+            whole story. Wrapped in `allOf` because OpenAPI 3.0.3 ignores any sibling of
+            a bare `$ref`.
         title:
           type: string
           description: A short summary of the problem kind. It does not change between

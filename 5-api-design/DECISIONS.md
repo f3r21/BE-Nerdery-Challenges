@@ -86,6 +86,38 @@ problem has no semantics beyond the HTTP status code, and it is the assumed valu
 client which failure it hit. Here that is the three 401 cases and the three 409 cases.
 Everything else omits it.
 
+**The six members**, as a closed enum in `components/schemas/ProblemType` so the linter
+enforces them across every operation rather than each one inventing its own spelling:
+
+| URI | Status | Why the code alone is not enough |
+| --- | --- | --- |
+| `.../invalid-credentials` | 401 | Wrong email or password at sign-in |
+| `.../access-token-expired` | 401 | Refresh and retry |
+| `.../refresh-token-unknown` | 401 | Unknown or already rotated. Send the user to sign in |
+| `.../email-taken` | 409 | Sign-up against an existing account |
+| `.../order-not-cancellable` | 409 | Already shipped |
+| `.../insufficient-stock` | 409 | Fewer units on hand than requested |
+
+A client that cannot separate the three 401s loops between refreshing and re-authenticating.
+A client that cannot separate the three 409s shows the wrong message.
+
+**The enum will grow before release, and that is not a breaking change.** Item 1 argues that
+adding a value to a response enum breaks a consumer with an exhaustive switch, and that is
+true of a *released* contract. This one has no consumer yet. Payment declined and
+promo-code-invalid are the likely additions when orders and payments are authored. The rule
+starts at first release: after that, adding a member is a minor version and removing one is
+breaking.
+
+**`https`, not a `tag:` or `urn:` URI, and it carries an obligation.** RFC 9457 recommends
+resolvable URIs, and says switching to a non-resolvable one later would itself be breaking.
+Its section 3.1.1 offers `tag:` for APIs that cannot serve documentation. I can serve it, so
+the choice is `https` and **Week 3 serves a short page at `/problems/{slug}`**, one per
+member. The domain is the store's canonical one and is deliberately not the `servers` URL,
+because a type URI has to be identical in development and in production.
+
+Consumers `SHOULD NOT` dereference automatically, per the same section, so nothing breaks in
+the window before those pages exist. The URI is an identifier first and a link second.
+
 **Gave up:** three things. Nest ships no support for it, so this costs a global exception
 filter in Week 3 plus an explicit `P2002` mapping, and the filter is now load-bearing
 rather than optional. `status` duplicates the HTTP status code in every error body, which
