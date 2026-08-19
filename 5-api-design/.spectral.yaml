@@ -1,0 +1,3 @@
+# Spectral v6 exits with "no ruleset found" if this file is absent, even though the
+# only thing it needs to say is "use the built-in OpenAPI rules".
+extends: ["spectral:oas"]

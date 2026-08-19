@@ -1,0 +1,87 @@
+# Skeleton only. The contract itself (paths, schemas, status codes, error shape) is
+# authored by hand against DECISIONS.md. What is here exists to prove the toolchain runs
+# before the document is two thousand lines long:
+#
+#   npx --yes @redocly/cli@latest lint 5-api-design/openapi.yaml
+#   npx --yes @stoplight/spectral-cli@6 lint 5-api-design/openapi.yaml
+#
+# Both are clean at 0 errors. Three warnings are left standing on purpose rather than
+# silenced with placeholder data: `info-license` and `info-contact` (this is coursework,
+# not a published API) and `no-server-example.com` (the server really is localhost;
+# that rule exists for public descriptions).
+#
+# 3.0.3, not 3.1: @nestjs/swagger emits 3.0.0, so Week 3's generated document stays
+# diffable against this one. The concrete tell is nullability: 3.0 spells it
+# `nullable: true`, 3.1 spells it `type: [string, "null"]`.
+openapi: 3.0.3
+
+info:
+  title: T-Shirt Store API
+  version: 0.1.0
+  description: |
+    Contract for the T-Shirt Store API. Week 3 implements this document; if the
+    implementation and the document disagree, the document is not out of date.
+
+    Written against ERD commit `8d47aae` on `challenge/erd`.
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+tags:
+  - name: auth
+    description: Sign up, sign in, sign out, token refresh, password reset.
+
+security:
+  - bearerAuth: []
+
+paths:
+  # TODO: the one operation below is a placeholder to keep the document valid and to
+  # prove the linters and editor.swagger.io accept it. Its path shape, its /v1 prefix
+  # (or absence of one) and its error responses are all DECISIONS.md calls. Rewrite it
+  # there, do not build on it as-is.
+  /auth/sign-in:
+    post:
+      tags: [auth]
+      summary: Exchange credentials for an access token
+      description: |
+        Public. Returns an access token on success. The refresh-token half of this flow
+        is not modelled yet. See DECISIONS.md, which has to settle the sign-out and
+        revocation semantics before `POST /auth/refresh` can be specified.
+      operationId: signIn
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+        '400':
+          description: Malformed request body
+        '401':
+          description: Credentials rejected
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
