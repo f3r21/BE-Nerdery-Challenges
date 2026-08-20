@@ -131,7 +131,10 @@ components:
 
     Problem:
       type: object
-      required: [type, title, status]
+      # `type` is deliberately NOT required. It is drawn from a closed enum that names only
+      # the failures a status code cannot tell apart, so a 404 or a 429 carries no member.
+      # RFC 9457: an absent `type` means `about:blank`, the status code is the whole story.
+      required: [title, status]
       properties:
         type:
           allOf:
