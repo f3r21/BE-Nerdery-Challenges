@@ -58,6 +58,9 @@ tags:
   - name: cart
     description: The cart of the signed-in user. Every user has one cart, because
       `shopping_carts.user_id` is unique.
+  - name: orders
+    description: Checkout, order history and the status flow. A client sees only its own
+      orders. A manager sees every order.
 
 security:
   - bearerAuth: []
@@ -1187,6 +1190,213 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
+  /orders:
+    post:
+      tags: [orders]
+      summary: Create an order from the cart
+      description: |
+        The server turns the cart of this user into an order and empties the cart.
+
+        The order starts in `pending`. The server does not lower any stock here. The
+        stock falls when the payment webhook reports success, so an order that is never
+        paid holds nothing back.
+
+        Each line copies the price of its variant into the order. An order is a fixed
+        record and a cart is a live view, so a later price change does not reach an
+        order.
+
+        An empty cart returns 409. A line above the stock on hand returns 409 with the
+        `insufficient-stock` problem type.
+      operationId: createOrder
+      responses:
+        '201':
+          description: The server created the order.
+          headers:
+            Location:
+              description: The URL of the new order.
+              schema:
+                type: string
+              example: /orders/501
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags: [orders]
+      summary: List every order
+      description: |
+        Only a manager may use this operation. A client reads its own orders at
+        `/users/me/orders`.
+
+        The server returns one page of orders across every user. The filters match the
+        ones on the client history.
+      operationId: listAllOrders
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/OrderStatusFilter'
+        - $ref: '#/components/parameters/CreatedFrom'
+        - $ref: '#/components/parameters/CreatedTo'
+        - $ref: '#/components/parameters/MinTotal'
+        - $ref: '#/components/parameters/MaxTotal'
+      responses:
+        '200':
+          description: One page of orders.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OrderSummary'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me/orders:
+    get:
+      tags: [orders]
+      summary: List the orders of this user
+      description: |
+        The server returns one page of the orders of the signed-in user.
+
+        Every filter is optional and the server applies the ones it receives. `from` is
+        inclusive and `to` is exclusive, so a day is `from` that day and `to` the next
+        one.
+
+        The price filters read the order total in minor units.
+      operationId: listMyOrders
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/OrderStatusFilter'
+        - $ref: '#/components/parameters/CreatedFrom'
+        - $ref: '#/components/parameters/CreatedTo'
+        - $ref: '#/components/parameters/MinTotal'
+        - $ref: '#/components/parameters/MaxTotal'
+      responses:
+        '200':
+          description: One page of orders.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OrderSummary'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /orders/{id}:
+    get:
+      tags: [orders]
+      summary: Get one order
+      description: |
+        The server returns the order with its lines, its payment method and its status
+        history.
+
+        An order that belongs to another client returns 404 and not 403. An order id is
+        an integer a caller can guess, so a 403 would confirm that the order exists. A
+        manager reads any order.
+      operationId: getOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: The order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /orders/{id}/status:
+    patch:
+      tags: [orders]
+      summary: Move an order to another status
+      description: |
+        The server moves the order to the status you send. The caller and the current
+        status decide which moves are legal.
+
+        A client may send `cancelled`, and only while the order is `pending`, `paid` or
+        `processing`. A manager may send `processing`, `shipped` or `cancelled`.
+
+        No caller may send `paid`. The payment webhook sets that status, because payment
+        is confirmed by Stripe and not by a request.
+
+        No caller may send `delivered`. That status belongs to the optional delivery
+        feature, which this contract leaves out of scope.
+
+        A move the current status does not allow returns 409. A cancel after the order
+        ships returns 409 with the `order-not-cancellable` problem type.
+      operationId: setOrderStatus
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [processing, shipped, cancelled]
+                  description: The status to move to. The set is narrower than
+                    `OrderStatus`, because `pending` is the start, `paid` is set by the
+                    webhook, and `delivered` is out of scope.
+                  example: processing
+      responses:
+        '200':
+          description: The order, with its new status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
 
   securitySchemes:
@@ -1532,6 +1742,125 @@ components:
             quantity after the line was added, and the checkout then fails.
           example: 7
 
+    # ---- Orders -------------------------------------------------------------
+    # `subtotal` and `total` are equal in this contract, because promo codes are
+    # Optional Feature 13 and out of scope. Both fields ship anyway. The ERD already
+    # carries `subtotal_amount` and `total_amount`, and the week's own table names
+    # adding an optional field as the one genuinely safe change, so shipping the pair
+    # now makes promo support additive later instead of a break.
+    OrderSummary:
+      type: object
+      required: [id, status, subtotal, total, itemCount, createdAt]
+      properties:
+        id:
+          type: integer
+          example: 501
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        subtotal:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: The sum of the lines, before any discount.
+        total:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: The amount charged.
+        itemCount:
+          type: integer
+          description: The number of units in the order, across every line.
+          example: 3
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-08-15T18:22:00Z'
+
+    Order:
+      type: object
+      required: [id, status, subtotal, total, items, createdAt, statusHistory]
+      properties:
+        id:
+          type: integer
+          example: 501
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        subtotal:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: The sum of the lines, before any discount.
+        total:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: The amount charged.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        paymentMethod:
+          allOf:
+            - $ref: '#/components/schemas/PaymentMethod'
+          description: How the order was paid. It is absent until a payment succeeds.
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-08-15T18:22:00Z'
+        statusHistory:
+          type: array
+          description: Every status this order has held, oldest first.
+          items:
+            $ref: '#/components/schemas/OrderStatusChange'
+
+    OrderItem:
+      type: object
+      required: [variantId, productId, productName, unitPrice, quantity, lineTotal]
+      properties:
+        variantId:
+          type: integer
+          example: 340
+        productId:
+          type: integer
+          example: 12
+        productName:
+          type: string
+          description: The name of the product when the order was placed.
+          example: Ringspun cotton tee
+        size:
+          type: string
+          example: M
+        color:
+          type: string
+          example: black
+        unitPrice:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: The price of the variant when the order was placed. It does not
+            follow a later price change.
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+        lineTotal:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: The unit price multiplied by the quantity.
+
+    OrderStatusChange:
+      type: object
+      required: [status, changedAt]
+      properties:
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        changedAt:
+          type: string
+          format: date-time
+          example: '2026-08-15T18:24:11Z'
+
+    PaymentMethod:
+      type: string
+      description: Feature 7 requires both Stripe flows. A payment link buys one product
+        and a payment intent buys a cart.
+      enum: [payment_link, payment_intent]
+      example: payment_intent
+
     # ---- Money, DECISIONS.md item 6 -----------------------------------------
     Money:
       type: integer
@@ -1614,6 +1943,67 @@ components:
       schema:
         type: integer
       example: 88
+
+    OrderId:
+      name: id
+      in: path
+      required: true
+      description: The id of the order.
+      schema:
+        type: integer
+      example: 501
+
+    # ---- Order history filters, Feature 9 -----------------------------------
+    # These five settle the "filter and sort parameter naming" entry in DECISIONS.md,
+    # which was deferred to the first operation that needed it. Names are camelCase per
+    # item 4. The date pair follows item 5: RFC 3339 with Z, `from` inclusive and `to`
+    # exclusive, so one day is `createdFrom` that day and `createdTo` the next.
+    OrderStatusFilter:
+      name: status
+      in: query
+      required: false
+      description: Return only the orders in this status.
+      schema:
+        $ref: '#/components/schemas/OrderStatus'
+    CreatedFrom:
+      name: createdFrom
+      in: query
+      required: false
+      description: Return the orders created at this time or after it. The bound is
+        inclusive.
+      schema:
+        type: string
+        format: date-time
+      example: '2026-08-01T00:00:00Z'
+    CreatedTo:
+      name: createdTo
+      in: query
+      required: false
+      description: Return the orders created before this time. The bound is exclusive.
+      schema:
+        type: string
+        format: date-time
+      example: '2026-09-01T00:00:00Z'
+    MinTotal:
+      name: minTotal
+      in: query
+      required: false
+      description: Return the orders whose total is this value or more. The value is in
+        minor units, the same as every other amount.
+      schema:
+        type: integer
+        minimum: 0
+      example: 1000
+    MaxTotal:
+      name: maxTotal
+      in: query
+      required: false
+      description: Return the orders whose total is this value or less. The value is in
+        minor units.
+      schema:
+        type: integer
+        minimum: 0
+      example: 50000
 
   responses:
 
