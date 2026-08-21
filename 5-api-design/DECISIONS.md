@@ -23,8 +23,12 @@ A decision with no "Gave up" line is not a decision, it is a default nobody exam
 | 9 | Password change | `PATCH /v1/users/me/password` exists, kills every session |
 | 10 | Path naming | A segment is a noun when a row is addressable, a `kebab-case` verb when not |
 
-Items 2, 8 and 9 depend on each other. Item 2's `Problem.type` is what makes item 8's
-typed 401 work, and item 8's session eviction is what makes item 9 cheap.
+Two chains run through this table. Items 2, 8 and 9 depend on each other: item 2's
+`Problem.type` is what makes item 8's typed 401 work, and item 8's session eviction is what
+makes item 9 cheap. Item 10 then depends on items 1, 4 and 8: it puts no version prefix on a
+path key because item 1 puts it in `servers.url`, it spells a verb `kebab-case` while item 4
+keeps query parameters `camelCase`, and it exists at all because item 8's refresh table gave
+sessions a row worth naming.
 
 ---
 
@@ -201,7 +205,10 @@ means a field can drift: the column and the property can disagree, and nothing c
 except review.
 
 **Why:** the coupling is the thing being avoided, and this week proves it is not
-hypothetical. `user_auth_data` becomes `users` on Thursday because a reviewer asked. If
+hypothetical. `user_auth_data` becomes `users` in the Saturday ERD pass because a reviewer
+asked, and the rename is still pending: `challenge/erd` at `8d47aae` reads `user_auth_data`
+today. That is the point rather than an excuse, because the contract is already written and
+the rename will not touch it. If
 the contract exposed column names, that rename would be an API break rather than a schema
 tidy-up. This is the same rule as "no schema table name appears in the spec", applied to
 fields instead of resources, and the version prefix in item 1 exists to survive exactly
@@ -610,6 +617,15 @@ Not cross-cutting enough to block authoring. Decided at first use and recorded h
   it is a separate customer-facing order number, so orders carry an opaque `orderNumber`
   alongside the integer key. That column is an ERD change, not a contract change, and it is
   scheduled with the Saturday ERD pass.
+
+  **Gave up:** enumerability, and the option to change course without a break. Every product
+  id in this contract is guessable, so anyone can walk the catalog. That costs nothing while
+  the catalog is public, and it is a real property rather than a non-issue. The larger cost is
+  the second one: an id is in the response body of nearly every operation, so moving to opaque
+  ids later changes the type of a field on `Product`, `Order`, `CartItem` and every id
+  parameter at once. The week's own table calls a type change a break. Sequential ids are
+  therefore a choice that gets harder to reverse with each operation added, and 36 operations
+  now depend on it.
 - **Add-to-cart semantics.** *Settled 2026-08-21, before the cart block.* **One row per variant
   per cart, addressed by the variant id, with the request setting the quantity rather than
   adding to it.** Item 10 answers this without reaching for a reading: a segment is a noun when
@@ -658,7 +674,68 @@ Not cross-cutting enough to block authoring. Decided at first use and recorded h
   **What this does not settle:** there is still no `stock_notifications` table, so nothing
   records that a mail was sent and the same person can be told repeatedly. That is an ERD gap,
   it is on the agreed-and-not-done list, and it belongs to the Saturday pass.
-- **Filter and sort parameter naming.** Settled when order history is authored, since it
-  carries all five filters.
-- **Webhook endpoint convention.** Settled with the Stripe endpoint.
+- **Scope, and the operation count it produces.** *Settled 2026-08-21, when authoring
+  stopped.* **The three Optional Features are out. Features 1 to 10 are in, and the contract
+  holds 36 operations.**
+
+  The brief marks 11 (delivery person), 12 (the `delivered` state) and 13 (promo codes) as
+  optional. They are cut. Two traces of them stay on purpose: `OrderStatus` keeps `delivered`
+  and `Role` keeps `delivery_person`, so the contract and the Week 1 ERD describe the same
+  domain, and `orders` keeps both `subtotal` and `total` even though they are always equal
+  without a discount. Adding an optional field later is the one change the week's own table
+  calls safe, so shipping the pair now makes promo support additive rather than a break.
+
+  **Gave up:** the Extra Points, and the ability to say the contract covers the whole ERD.
+  `promo_codes`, `assigned_delivery_person_id` and `orders.discount_amount` are columns no
+  operation in this document reads or writes. A reviewer can find schema this contract does
+  not reach, and the honest answer is that it was cut rather than missed.
+
+  **The count is 36 and not the 39 an earlier derivation gave.** All three differences are
+  consequences of decisions in this file, not omissions:
+
+  | Where | Planned | Actual | Why |
+  | --- | --- | --- | --- |
+  | Catalog read | 7 | 6 | Images are embedded in the product detail. A separate image read would rebuild the N+1 that the summary and detail split exists to avoid |
+  | Catalog write | 10 | 9 | Disabling is `isActive` on `PATCH /products/{id}`. Item 10 makes it a field on an addressable row, not a verb endpoint |
+  | Cart | 5 | 4 | The add-to-cart decision above makes the request set an absolute quantity, so adding an item and changing its quantity are the same idempotent call |
+
+  Re-derive: `grep -c operationId openapi.yaml`.
+- **Filter and sort parameter naming.** *Settled 2026-08-21, with the order history.*
+  **`status`, `createdFrom`, `createdTo`, `minTotal`, `maxTotal`, declared once in
+  `components/parameters` and referenced by both order collections.**
+
+  `camelCase` per item 4, which covers query parameters. The date pair follows item 5:
+  `createdFrom` is inclusive and `createdTo` is exclusive, so one calendar day is `createdFrom`
+  that day and `createdTo` the next. The price pair reads the order total in minor units per
+  item 6, so a filter and the field it filters use one representation.
+
+  **Gave up:** a sort parameter, and the shorter names. Nothing in this contract sorts, because
+  the brief asks for filters and pagination and never for an order, so a `sort` parameter would
+  be a guess at a requirement. And `createdFrom` is longer than `from`, which was the first
+  choice: `from` reads as a date on an order collection and reads as nothing in particular
+  anywhere else, and a parameter declared once in `components` is copied to every collection
+  that follows.
+- **Webhook endpoint convention.** *Settled 2026-08-21, with the Stripe endpoint.*
+  **`POST /webhooks/stripe`, one route for every event type, `security: []`, and a 200 on a
+  replay.**
+
+  It sits under `/webhooks` rather than beside the resources it changes, because the caller is
+  Stripe and not a person, and the route belongs to whoever calls it. One route rather than one
+  per event type, because Stripe signs the envelope and the signature has to be checked before
+  the `type` field is trustworthy enough to route on.
+
+  `security: []` is honest rather than lax. The bearer scheme does not apply, and the real
+  credential is the `Stripe-Signature` header, which the operation declares as a required
+  parameter. Item 7's floor already settled the two odd codes: a signature that fails
+  verification is 400, and an event already applied is 200.
+
+  **Gave up:** a route a human can read at a glance, and per-event typing in the contract. The
+  request body is declared as an opaque Stripe event with `id` and `type` required, so the
+  document says less about this payload than about any other. Typing both event shapes fully
+  would pin this contract to a Stripe API version it does not control.
+
+  The 200-on-replay is the part worth defending. Stripe retries, so a retry must not lower the
+  stock twice. `order_payments.stripe_reference` is unique in the ERD, which is what makes the
+  already-applied check reliable rather than a best effort. That column came out of the Week 1
+  review, and this is the operation that spends it.
 - **CORS and exposed headers.** Not expressible in OpenAPI; belongs in the Week 3 notes.
