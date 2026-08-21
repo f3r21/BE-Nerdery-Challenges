@@ -52,6 +52,9 @@ servers:
 tags:
   - name: auth
     description: Sign up, sign in, sign out, token refresh, password reset.
+  - name: catalog
+    description: Products, variants, images, categories and likes. Reading the catalog is
+      public. Liking a product needs a token.
 
 security:
   - bearerAuth: []
@@ -443,6 +446,200 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
+  /products:
+    get:
+      tags: [catalog]
+      summary: List products
+      description: |
+        This operation is public. It does not need a token.
+
+        The server returns one page of products. Each entry carries the lowest price of
+        its variants, so a storefront can draw a card without the sizes.
+
+        The entries do not carry the variants. Ask for one product to get them. This is
+        what keeps the list to a fixed number of queries as the page grows.
+
+        The server hides a deleted product from every caller. The server hides a disabled
+        product unless the caller is a manager and sets `includeInactive`.
+      operationId: listProducts
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - name: categoryId
+          in: query
+          required: false
+          description: Return only the products in this category.
+          schema:
+            type: integer
+          example: 3
+        - name: includeInactive
+          in: query
+          required: false
+          description: Include the disabled products. Only a manager may set this to
+            true. A caller with no token receives 401. A caller who is not a manager
+            receives 403.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: One page of products.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductSummary'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /products/{id}:
+    get:
+      tags: [catalog]
+      summary: Get one product
+      description: |
+        This operation is public. It does not need a token.
+
+        The server returns the product with its variants, its images and its categories.
+
+        A deleted product returns 404. A disabled product returns 404 unless the caller
+        is a manager.
+      operationId: getProduct
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          description: The product, with its variants, images and categories.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /products/{id}/like:
+    put:
+      tags: [catalog]
+      summary: Like a product
+      description: |
+        The server records that this user likes this product.
+
+        The operation is idempotent. A second call leaves the same single like. The user
+        comes from the token, so the request carries no body.
+      operationId: likeProduct
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '204':
+          description: The user likes this product.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [catalog]
+      summary: Remove a like
+      description: |
+        The server removes the like of this user for this product.
+
+        The operation is idempotent. The server answers 204 whether or not a like was
+        there to remove. A product that does not exist still returns 404.
+      operationId: unlikeProduct
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '204':
+          description: The user does not like this product.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me/likes:
+    get:
+      tags: [catalog]
+      summary: List the products this user likes
+      description: |
+        The server returns one page of the products this user likes. An entry has the
+        same shape as an entry of the product list.
+      operationId: listLikedProducts
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: One page of liked products.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductSummary'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /categories:
+    get:
+      tags: [catalog]
+      summary: List categories
+      description: |
+        This operation is public. It does not need a token.
+
+        The server returns one page of categories. Send the id of a category as the
+        `categoryId` parameter of the product list.
+      operationId: listCategories
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: One page of categories.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
 
   securitySchemes:
@@ -612,6 +809,121 @@ components:
           format: date-time
           example: '2026-08-21T13:45:00Z'
 
+    # ---- Catalog ------------------------------------------------------------
+    # Two product shapes on purpose. The list entry carries a price summary and no
+    # variants, so one page costs a fixed number of queries however many sizes a product
+    # has. The detail carries the variants, and a client asks for it one product at a
+    # time. That split is the answer to the N+1 reading.
+    ProductSummary:
+      type: object
+      required: [id, name, isActive, priceFrom, createdAt]
+      properties:
+        id:
+          type: integer
+          example: 12
+        name:
+          type: string
+          example: Ringspun cotton tee
+        priceFrom:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: The lowest price among the variants of this product. Wrapped in
+            `allOf` because OpenAPI 3.0.3 ignores any sibling of a bare `$ref`.
+        primaryImageUrl:
+          type: string
+          description: The image marked primary. It is absent when the product has no
+            image.
+          example: https://cdn.tshirt.store/products/12/front.jpg
+        isActive:
+          type: boolean
+          description: A disabled product carries false. Only a manager sees one in a
+            list.
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-08-01T10:00:00Z'
+
+    Product:
+      type: object
+      required: [id, name, isActive, createdAt, variants, images, categories]
+      properties:
+        id:
+          type: integer
+          example: 12
+        name:
+          type: string
+          example: Ringspun cotton tee
+        description:
+          type: string
+          example: A heavyweight tee in a regular fit.
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-08-01T10:00:00Z'
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductVariant'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductImage'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+
+    ProductVariant:
+      type: object
+      required: [id, price, stock]
+      properties:
+        id:
+          type: integer
+          example: 340
+        size:
+          type: string
+          example: M
+        color:
+          type: string
+          example: black
+        price:
+          $ref: '#/components/schemas/Money'
+        stock:
+          type: integer
+          description: The units on hand. Feature 8 mails the users who like a product
+            when this value reaches 3, so the number is not treated as secret.
+          minimum: 0
+          example: 7
+
+    ProductImage:
+      type: object
+      required: [id, url, isPrimary]
+      properties:
+        id:
+          type: integer
+          example: 88
+        url:
+          type: string
+          example: https://cdn.tshirt.store/products/12/front.jpg
+        isPrimary:
+          type: boolean
+          example: true
+
+    Category:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          example: 3
+        name:
+          type: string
+          example: T-shirts
+
     # ---- Money, DECISIONS.md item 6 -----------------------------------------
     Money:
       type: integer
@@ -667,6 +979,15 @@ components:
         minimum: 0
         default: 0
       example: 40
+
+    ProductId:
+      name: id
+      in: path
+      required: true
+      description: The id of the product.
+      schema:
+        type: integer
+      example: 12
 
   responses:
 
