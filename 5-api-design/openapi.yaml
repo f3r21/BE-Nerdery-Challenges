@@ -61,6 +61,9 @@ tags:
   - name: orders
     description: Checkout, order history and the status flow. A client sees only its own
       orders. A manager sees every order.
+  - name: payments
+    description: The two Stripe flows and the webhook that applies their result. A
+      payment link buys one product. A payment intent buys a cart.
 
 security:
   - bearerAuth: []
@@ -1397,6 +1400,157 @@ paths:
           $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
+  /payment-links:
+    post:
+      tags: [payments]
+      summary: Create a payment link for one product
+      description: |
+        The server creates an order for one variant and returns a Stripe payment link.
+        This is the flow that buys a single product without the cart.
+
+        The order belongs to the caller. `orders.user_id` cannot be null, so an
+        anonymous purchase has nowhere to be recorded. The link is shareable in the sense
+        that another person can pay it, and the order still belongs to the caller.
+
+        The order starts in `pending`. The stock falls when the
+        `checkout.session.completed` event arrives, and not here.
+
+        A quantity above the stock on hand returns 409 with the `insufficient-stock`
+        problem type.
+      operationId: createPaymentLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [variantId, quantity]
+              properties:
+                variantId:
+                  type: integer
+                  example: 340
+                quantity:
+                  type: integer
+                  minimum: 1
+                  default: 1
+                  example: 1
+      responses:
+        '201':
+          description: The server created the order and the payment link.
+          headers:
+            Location:
+              description: The URL of the order this link pays for. The addressable row
+                this operation creates is the order.
+              schema:
+                type: string
+              example: /orders/502
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentLink'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /orders/{id}/payments:
+    post:
+      tags: [payments]
+      summary: Create a payment intent for an order
+      description: |
+        The server creates a Stripe payment intent for this order and returns its client
+        secret. This is the flow that pays for a cart.
+
+        The server checks the stock of every line before it creates the intent. A line
+        above the stock on hand returns 409 with the `insufficient-stock` problem type.
+
+        The amount comes from the order and never from the request. A client that sent
+        its own amount could choose what to pay.
+
+        An order that is not `pending` returns 409. An order that belongs to another
+        client returns 404.
+      operationId: createPaymentIntent
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '201':
+          description: The server created the payment intent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /webhooks/stripe:
+    post:
+      tags: [payments]
+      summary: Receive a Stripe event
+      description: |
+        Stripe calls this operation. A person does not.
+
+        The operation carries no bearer token. Stripe signs the request and the server
+        verifies the `Stripe-Signature` header against the raw request body. The body
+        must reach the verifier byte for byte, so this route reads the raw body and not
+        a parsed one.
+
+        The server handles `checkout.session.completed` for the payment link flow and
+        `payment_intent.succeeded` for the cart flow. Both move the order to `paid` and
+        lower the stock of every line.
+
+        A signature that does not verify returns 400. An event that the server has
+        already applied returns 200 and changes nothing, because Stripe retries and a
+        retry must not lower the stock twice. `order_payments.stripe_reference` is
+        unique, which is what makes that check reliable.
+
+        Any other outcome that is not 2xx makes Stripe retry.
+      operationId: receiveStripeEvent
+      security: []
+      parameters:
+        - name: Stripe-Signature
+          in: header
+          required: true
+          description: The signature Stripe computes over the raw body and the timestamp.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: A Stripe event object. The server reads `type` and `data`, and
+                it treats the rest as opaque.
+              required: [id, type]
+              properties:
+                id:
+                  type: string
+                  example: evt_1P0000000000000000000000
+                type:
+                  type: string
+                  example: payment_intent.succeeded
+                data:
+                  type: object
+      responses:
+        '200':
+          description: The server applied the event, or it had applied the event already.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
 
   securitySchemes:
@@ -1853,6 +2007,42 @@ components:
           type: string
           format: date-time
           example: '2026-08-15T18:24:11Z'
+
+    PaymentLink:
+      type: object
+      required: [orderId, url]
+      properties:
+        orderId:
+          type: integer
+          description: The order this link pays for. It starts in `pending`.
+          example: 502
+        url:
+          type: string
+          description: The Stripe page that takes the payment. Send a person here.
+          example: https://checkout.stripe.com/c/pay/cs_test_a1b2c3
+        expiresAt:
+          type: string
+          format: date-time
+          description: When Stripe stops accepting this link.
+          example: '2026-08-22T18:22:00Z'
+
+    PaymentIntent:
+      type: object
+      required: [orderId, clientSecret, amount]
+      properties:
+        orderId:
+          type: integer
+          example: 501
+        clientSecret:
+          type: string
+          description: Stripe.js completes the payment with this value. It is not a
+            server credential and it identifies one payment attempt.
+          example: pi_3P000000000000_secret_a1b2c3
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: The amount Stripe will charge. It comes from the order, so a
+            client cannot choose what to pay.
 
     PaymentMethod:
       type: string
