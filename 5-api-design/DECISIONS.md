@@ -610,6 +610,54 @@ Not cross-cutting enough to block authoring. Decided at first use and recorded h
   it is a separate customer-facing order number, so orders carry an opaque `orderNumber`
   alongside the integer key. That column is an ERD change, not a contract change, and it is
   scheduled with the Saturday ERD pass.
+- **Add-to-cart semantics.** *Settled 2026-08-21, before the cart block.* **One row per variant
+  per cart, addressed by the variant id, with the request setting the quantity rather than
+  adding to it.** Item 10 answers this without reaching for a reading: a segment is a noun when
+  the client can address a row, and the client addresses this row by the variant id it just
+  chose. Nothing needs minting, which is the one condition `PUT vs POST` attaches to a create
+  that is not a POST, and the cart is the only place in this contract where that condition
+  holds.
+
+  The reason to care is not tidiness. Setting a quantity is idempotent, and RFC 9110 9.2.2
+  defines idempotency by the intended effect on the server, so the same request sent twice
+  leaves the cart in the state the client asked for. An increment does not have that property,
+  and add-to-cart is the operation most likely to be sent twice, because it is the one people
+  press again on a slow connection.
+
+  **Gave up:** the reading's "always use POST for CREATE", which this departs from and which is
+  worth naming before a reviewer finds it. And a client that wants one more of something now
+  sends the resulting total rather than a delta, so it has to know the current quantity. It
+  does, because it is rendering the cart, but that is an assumption this contract depends on.
+
+  **What this obliges the ERD to do:** `shopping_cart_items` carries no uniqueness marker
+  today, so two rows for the same variant in one cart are legal. `UNIQUE (cart_id,
+  product_variant_id)` is already on the ERD's agreed-and-not-done list, and this decision is
+  what spends it. Without that constraint the contract promises something the schema does not
+  enforce.
+- **B4b, what "stock reaches 3" counts.** *Settled 2026-08-21. It changes no operation in this
+  contract, and it is recorded here because it was raised while authoring Week 2.* **A single
+  variant reaching 3 fires the notification, and the audience stays everyone who liked the
+  parent product.**
+
+  The brief says "when the stock of a product reaches 3" and "notify users who liked the
+  product", so it is written as though stock lived on the product. It does not.
+  `product_variants` carries `stock`, and that is the more correct model, because a store counts
+  Medium Black separately from Large White. The mismatch is the brief's rather than the ERD's,
+  and this entry is how the two are reconciled.
+
+  The audience half needed no decision. `product_likes` is keyed `(user_id, product_id)`, which
+  already matches what the brief asks for. Only the trigger was open.
+
+  **Gave up:** precision, in favour of firing at all. Summing stock across variants is the
+  literal reading and it is the one that fails silently: a product with a hundred Smalls and no
+  Larges never reaches 3, so the person waiting on a Large is never told. Keying likes to the
+  variant would be exact and is wrong for people, who like a shirt rather than a size. The cost
+  of what was chosen is noise, since someone waiting on a Large is emailed because a Medium ran
+  low.
+
+  **What this does not settle:** there is still no `stock_notifications` table, so nothing
+  records that a mail was sent and the same person can be told repeatedly. That is an ERD gap,
+  it is on the agreed-and-not-done list, and it belongs to the Saturday pass.
 - **Filter and sort parameter naming.** Settled when order history is authored, since it
   carries all five filters.
 - **Webhook endpoint convention.** Settled with the Stripe endpoint.
