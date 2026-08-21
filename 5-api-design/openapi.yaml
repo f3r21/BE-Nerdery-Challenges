@@ -55,6 +55,9 @@ tags:
   - name: catalog
     description: Products, variants, images, categories and likes. Reading the catalog is
       public. Liking a product needs a token.
+  - name: cart
+    description: The cart of the signed-in user. Every user has one cart, because
+      `shopping_carts.user_id` is unique.
 
 security:
   - bearerAuth: []
@@ -1065,6 +1068,125 @@ paths:
           $ref: '#/components/responses/UnprocessableEntity'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
+  /users/me/cart:
+    get:
+      tags: [cart]
+      summary: Get the cart of this user
+      description: |
+        The server returns the cart of the signed-in user. Every user has one cart.
+
+        A user who never added anything receives an empty cart and not a 404. The cart
+        exists because the user exists.
+
+        The cart holds no price of its own. Each line reads the price of its variant now,
+        so a price change by a manager reaches a cart that is already filled.
+      operationId: getCart
+      responses:
+        '200':
+          description: The cart of this user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me/cart/items:
+    delete:
+      tags: [cart]
+      summary: Empty the cart
+      description: |
+        The server removes every line from the cart of this user.
+
+        The operation is idempotent. An empty cart answers 204 as well.
+      operationId: clearCart
+      responses:
+        '204':
+          description: The cart is empty.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me/cart/items/{variantId}:
+    parameters:
+      - name: variantId
+        in: path
+        required: true
+        description: The id of the product variant this line holds. A cart holds one line
+          for each variant, so the variant identifies the line.
+        schema:
+          type: integer
+        example: 340
+    put:
+      tags: [cart]
+      summary: Set the quantity of one variant in the cart
+      description: |
+        Send the quantity you want in the cart. The value is absolute and it is not an
+        amount to add.
+
+        The operation is idempotent. Two identical calls leave the same quantity, so a
+        repeat on a slow connection cannot double the line.
+
+        The server creates the line when it is absent and replaces the quantity when it
+        is present.
+
+        A quantity above the stock on hand returns 409 with the `insufficient-stock`
+        problem type. A variant that does not exist, or whose product is deleted or
+        disabled, returns 404.
+      operationId: setCartItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+                  description: The units of this variant to hold in the cart. Send a
+                    DELETE to remove the line instead of a quantity of zero.
+                  example: 2
+      responses:
+        '200':
+          description: The cart, with this line set.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [cart]
+      summary: Remove one variant from the cart
+      description: |
+        The server removes the line for this variant.
+
+        The operation is idempotent. A line that is already absent answers 204. A variant
+        that does not exist returns 404.
+      operationId: deleteCartItem
+      responses:
+        '204':
+          description: The cart holds no line for this variant.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
 
   securitySchemes:
@@ -1348,6 +1470,67 @@ components:
         name:
           type: string
           example: T-shirts
+
+    # ---- Cart ---------------------------------------------------------------
+    # `shopping_cart_items` carries no price column, so a line reads the price of its
+    # variant at request time. A cart is therefore a live view and not a quote. The
+    # order is where a price is fixed.
+    Cart:
+      type: object
+      required: [items, subtotal]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        subtotal:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: The sum of the line totals. It carries no tax and no delivery
+            charge, because this store applies neither.
+
+    CartItem:
+      type: object
+      required: [variantId, productId, productName, unitPrice, quantity, lineTotal, stock]
+      properties:
+        variantId:
+          type: integer
+          example: 340
+        productId:
+          type: integer
+          example: 12
+        productName:
+          type: string
+          example: Ringspun cotton tee
+        size:
+          type: string
+          example: M
+        color:
+          type: string
+          example: black
+        imageUrl:
+          type: string
+          description: The primary image of the product. It is absent when the product
+            has no image.
+          example: https://cdn.tshirt.store/products/12/front.jpg
+        unitPrice:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: The price of the variant now.
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+        lineTotal:
+          allOf:
+            - $ref: '#/components/schemas/Money'
+          description: The unit price multiplied by the quantity.
+        stock:
+          type: integer
+          minimum: 0
+          description: The units on hand for this variant now. It can fall below the
+            quantity after the line was added, and the checkout then fails.
+          example: 7
 
     # ---- Money, DECISIONS.md item 6 -----------------------------------------
     Money:
