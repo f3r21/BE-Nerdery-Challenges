@@ -8,7 +8,7 @@ full-document rewrite, which is why they are settled before the first path is ty
 Same shape as `4-database/3-erd/DECISIONS.md`: what was chosen, what it cost, and why.
 A decision with no "Gave up" line is not a decision, it is a default nobody examined.
 
-## The nine calls
+## The ten calls
 
 | # | Question | Chose |
 | --- | --- | --- |
@@ -21,6 +21,7 @@ A decision with no "Gave up" line is not a decision, it is a default nobody exam
 | 7 | Status codes | 400 on validation, 404 on another client's order. 403 protects an action, 404 protects a fact |
 | 8 | Tokens | 15 min access, 7 day refresh, rotation on use, per-device sign-out, typed 401 |
 | 9 | Password change | `PATCH /v1/users/me/password` exists, kills every session |
+| 10 | Path naming | A segment is a noun when a row is addressable, a `kebab-case` verb when not |
 
 Items 2, 8 and 9 depend on each other. Item 2's `Problem.type` is what makes item 8's
 typed 401 work, and item 8's session eviction is what makes item 9 cheap.
@@ -428,7 +429,7 @@ What is open is writing down what that forces on this document, before the auth 
 authored against a different assumption.
 
 - Does `POST /auth/refresh` exist, and what does it accept and return?
-- What does `POST /auth/signout` do, and what does it return?
+- What does `DELETE /auth/sessions/current` do, and what does it return?
 - What does a 401 mean here: access token expired, refresh row deleted, or both?
 - **The revocation lag.** A signed access token stays valid until it expires, so sign-out
   revokes the future, not the present. That bound is the access-token lifetime. State the
@@ -446,7 +447,7 @@ every use:** the presented row is deleted and a new one issued. If a refresh tok
 already been rotated is presented again, every refresh row for that user is deleted, on the
 assumption that the token was stolen and replayed.
 
-**`POST /v1/auth/signout`.** Deletes the presented device's row only, returns 204. Password
+**`DELETE /v1/auth/sessions/current`.** Deletes the presented device's row only, returns 204. Password
 change and password reset delete **every** row for that user.
 
 **401 means "this access token is not usable, try refreshing."** The `Problem.type` from
@@ -539,11 +540,76 @@ session alive on the old credential, including the one that made the change.
 
 ---
 
+## 10. Path segment naming
+
+**The question.** Does a path segment name a resource or an action, and how is it spelled.
+
+**What it costs either way.** All-verbs is what this file's prose said until today. It is
+consistent and simple, and it leaves `refresh_tokens.device_name` with no endpoint that reads
+it. All-nouns is the purer reading of Naming REST Resources, and it forces a noun onto two
+operations that have no row behind them.
+
+**Chose:** a segment is a noun when the client can address a row, and a verb when it cannot.
+Verbs are spelled `kebab-case`. Query parameters stay `camelCase` per item 4, so a segment and
+a parameter in the same URL follow different rules on purpose. The `/v1` prefix stays in
+`servers.url` per item 1, so a path key carries no prefix even where the prose here quotes a
+full URL.
+
+| Operation | Path | Row the client can address |
+| --- | --- | --- |
+| Sign in | `POST /auth/sessions` | Yes, it creates one |
+| List my devices | `GET /auth/sessions` | Yes, `device_name` exists to render it |
+| Sign out this device | `DELETE /auth/sessions/current` | Yes, the one it presents |
+| Sign out another device | `DELETE /auth/sessions/{id}` | Yes |
+| Rotate the token | `POST /auth/refresh` | A row exists, the client holds a token not an id |
+| Request a reset | `POST /auth/forgot-password` | No |
+| Complete a reset | `POST /auth/reset-password` | No |
+| Sign up | `POST /users` | It creates one |
+
+**Gave up:** two things. Consistency, because the reader now has to learn one rule instead of
+none, and a rule that splits is a rule that can be applied wrongly at the margin. And
+`PATCH /password-resets/{token}`, which is where the noun form runs out: it puts a secret in a
+path segment, and path segments land in access logs and in `Referer` headers. The reset token
+stays in the request body, so those two operations keep verbs on security grounds rather than
+taste.
+
+**Why:** the resource is already in the ERD. `refresh_tokens` carries an `id` and a
+`device_name`, and that column has one job, which is showing a person which devices are signed
+in. Calling the path `/auth/sessions` describes something that exists. Calling it
+`/auth/sign-out` hides it, and leaves a column in the schema that no endpoint ever reads.
+
+Item 8 already says a user must be able to evict an attacker. Its answer was to delete every
+refresh row on a password change. That works, and it is blunt: you lose every other device to
+get rid of one. `DELETE /auth/sessions/{id}` is the same need at the right granularity, and it
+costs one operation, because the row it deletes was always going to be there.
+
+The split is what keeps this from being taste. `forgot-password` has no row behind it, so there
+is nothing to name, and inventing `/password-resets` for the sake of consistency would put a
+reset token in a path segment. Consistency that produces a worse URL stops being worth it.
+
+---
+
 ## Deferred to the operations that use them
 
 Not cross-cutting enough to block authoring. Decided at first use and recorded here after.
 
-- **Id exposure.** Sequential integers from the ERD, or opaque ids.
+- **Id exposure.** *Settled 2026-08-20, at the first `{id}` in the document.* **Sequential
+  integers**, uniformly, as the ERD already has them. Opaque ids protect against enumeration,
+  and enumeration is only a vulnerability if guessing an id returns the data. CASL and item 7's
+  404-on-ownership are what stop that. Obscurity on top of correct authorization buys nothing,
+  and on top of broken authorization it hides the bug from the tests instead of fixing it.
+
+  Checked against the brief rather than assumed: the only ids that leave the API are product
+  ids, in the shareable payment links at `Challenge - T-Shirt Store API.md:107` and the stock
+  notification email at `:122`. The catalog is public, so enumerating it leaks nothing. No
+  order id travels anywhere, because the brief has no order confirmation email.
+
+  **What would overturn this**, and one of them is close enough to plan for: an id reaching a
+  place authorization does not cover, such as an order confirmation email, a support chat, or a
+  `Referer` header. A real store sends that email. The answer there is not UUID primary keys,
+  it is a separate customer-facing order number, so orders carry an opaque `orderNumber`
+  alongside the integer key. That column is an ERD change, not a contract change, and it is
+  scheduled with the Saturday ERD pass.
 - **Filter and sort parameter naming.** Settled when order history is authored, since it
   carries all five filters.
 - **Webhook endpoint convention.** Settled with the Stripe endpoint.

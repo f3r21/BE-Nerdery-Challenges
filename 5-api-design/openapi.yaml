@@ -47,23 +47,19 @@ security:
 paths:
   # Path keys carry NO version prefix. The /v1 lives in servers.url, so writing
   # `/v1/products` here produces the URL /v1/v1/products. DECISIONS.md item 1.
-  #
-  # TODO: the operation below is a placeholder. It exists to keep the document valid and
-  # to prove the linters and editor.swagger.io accept it. Its request and response shapes
-  # predate the components layer. Replace it when the auth block is authored.
-  /auth/sign-in:
+  /auth/sessions:
     post:
       tags: [auth]
-      summary: Exchange credentials for an access token
+      summary: Create a session and get tokens
       description: |
         This operation is public. It does not need a token.
 
-        Send the email and the password. The server returns an access token.
+        Send the email and the password. The server creates a session for this device.
+        The server returns an access token and a refresh token.
 
-        This operation returns an access token only. A later commit adds the refresh
-        token to this response, and adds `POST /auth/refresh`. DECISIONS.md item 8 sets
-        both.
-      operationId: signIn
+        A wrong email or a wrong password returns 401 with the `invalid-credentials`
+        problem type. The server does not say which of the two was wrong.
+      operationId: createSession
       security: []
       requestBody:
         required: true
@@ -76,24 +72,110 @@ paths:
                 email:
                   type: string
                   format: email
+                  example: ana@example.com
                 password:
                   type: string
                   format: password
+                deviceName:
+                  type: string
+                  description: A label for this device. The user sees this label in the
+                    device list.
+                  example: Ana iPhone
       responses:
-        '200':
-          description: Signed in
+        '201':
+          description: The server created the session.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  accessToken:
-                    type: string
+                $ref: '#/components/schemas/SessionTokens'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+    get:
+      tags: [auth]
+      summary: List the devices signed in to this account
+      operationId: listSessions
+      responses:
+        '200':
+          description: The devices signed in to this account.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Session'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
+  /auth/sessions/current:
+    delete:
+      tags: [auth]
+      summary: Sign out this device
+      description: |
+        The server deletes the refresh row for the device that sends this request. Other
+        devices stay signed in. The access token stays valid until it expires, so
+        revocation lags by up to 15 minutes.
+      operationId: deleteCurrentSession
+      responses:
+        '204':
+          description: The server deleted the session.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/sessions/{id}:
+    delete:
+      tags: [auth]
+      summary: Sign out another device
+      description: |
+        The server deletes one refresh row for this user. A session id that belongs to
+        another user returns 404. A 403 would confirm that the session exists.
+      operationId: deleteSession
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: The server deleted the session.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Exchange a refresh token for new tokens
+      operationId: refreshSession
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: The server issued new tokens.
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionTokens'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 components:
 
   securitySchemes:
@@ -103,6 +185,20 @@ components:
       bearerFormat: JWT
 
   schemas:
+    Session:
+      type: object
+      required: [id, createdAt, expiresAt]
+      properties:
+        id:
+          type: integer
+        deviceName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
 
     # ---- Errors, DECISIONS.md item 2 ----------------------------------------
     # RFC 9457, which obsoletes RFC 7807. Served as application/problem+json, never
@@ -175,6 +271,21 @@ components:
               message:
                 type: string
                 example: must be a valid email address
+
+    # ---- Sessions, DECISIONS.md items 8 and 10 ------------------------------
+    # Returned by POST /auth/sessions and by POST /auth/refresh. The two return the same
+    # shape because refresh replaces both tokens, so a client stores them the same way.
+    SessionTokens:
+      type: object
+      required: [accessToken, refreshToken]
+      properties:
+        accessToken:
+          type: string
+          description: A bearer token. It is valid for 15 minutes.
+        refreshToken:
+          type: string
+          description: It is valid for 7 days. It rotates on every use. Keep the new
+            value and discard the old one.
 
     # ---- Pagination, DECISIONS.md item 3 ------------------------------------
     # Every collection returns this envelope. No endpoint returns a bare array.
