@@ -234,6 +234,215 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
+  /auth/forgot-password:
+    post:
+      tags: [auth]
+      summary: Ask for a password reset link
+      description: |
+        This operation is public. It does not need a token.
+
+        Send the email address. The server sends a reset link to that address.
+
+        The server answers 202 whether or not the address has an account. A different
+        answer would tell the caller which addresses are registered.
+
+        This operation is rate limited. Too many requests return 429.
+      operationId: requestPasswordReset
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 254
+                  example: ana@example.com
+      responses:
+        '202':
+          description: The server accepted the request. It sends the mail only if the
+            address has an account.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/reset-password:
+    post:
+      tags: [auth]
+      summary: Set a new password with a reset token
+      description: |
+        This operation is public. It does not need a token.
+
+        Send the token from the reset mail and the new password. The server sets the new
+        password.
+
+        The token travels in the body and never in the path. A path segment reaches the
+        access log and the `Referer` header.
+
+        A token that is unknown or expired returns 422. The body is well formed and the
+        server rejects it on its content.
+
+        On success the server deletes every refresh row for this user. Each device must
+        sign in again. The server also sends an email to the account address.
+      operationId: resetPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token:
+                  type: string
+                  minLength: 1
+                  maxLength: 512
+                  description: The value from the reset mail. It is opaque and it is
+                    valid one time only.
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  maxLength: 128
+                  description: The new password. The same bounds apply as at sign up.
+      responses:
+        '204':
+          description: The server set the new password and ended every session.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users:
+    post:
+      tags: [auth]
+      summary: Create an account
+      description: |
+        This operation is public. It does not need a token.
+
+        Send an email address, a password and a name. The server creates a client
+        account. The server returns the new account and a `Location` header that names
+        it.
+
+        The request does not accept a role. Every account this operation creates is a
+        client account. A manager assigns any other role.
+
+        An email address that is already registered returns 409 with the `email-taken`
+        problem type.
+      operationId: createUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, firstName, lastName]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 254
+                  description: RFC 5321 4.5.3.1.3 caps a forward-path at 256 octets
+                    including the punctuation, which leaves 254 for the address.
+                  example: ana@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  maxLength: 128
+                  description: The maximum is a cost bound, not a security rule. The
+                    server hashes the value it receives. An unbounded field lets one
+                    request consume a large amount of processor time.
+                firstName:
+                  type: string
+                  maxLength: 100
+                  example: Ana
+                lastName:
+                  type: string
+                  maxLength: 100
+                  example: Ramirez
+      responses:
+        '201':
+          description: The server created the account.
+          headers:
+            Location:
+              description: The URL of the new account.
+              schema:
+                type: string
+              example: /users/128
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me/password:
+    patch:
+      tags: [auth]
+      summary: Change the password of the signed-in account
+      description: |
+        Send the current password and the new password. The server changes the password.
+
+        The server needs the current password. An access token is valid for 15 minutes,
+        so a stolen token alone must not be enough to seize the account.
+
+        A wrong current password returns 401. It is an authentication failure and not a
+        permissions failure.
+
+        On success the server deletes every refresh row for this user, including the row
+        for the device that sent this request. The caller must sign in again. The server
+        also sends an email to the account address.
+
+        This operation is rate limited, because it accepts a password guess.
+      operationId: changePassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+                  maxLength: 128
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+                  maxLength: 128
+      responses:
+        '204':
+          description: The server changed the password and ended every session.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
 
   securitySchemes:
@@ -373,6 +582,35 @@ components:
             during a scan.
           default: 0
           example: 40
+
+    # ---- Users --------------------------------------------------------------
+    # The field list is the point. `user_auth_data` also carries `password_hash`,
+    # `reset_token` and `reset_token_expires_at`. A Week 3 serializer that returns the row
+    # whole would put a live password-reset token in a 200. Naming the fields here makes
+    # that a contract violation rather than an accident.
+    User:
+      type: object
+      required: [id, email, firstName, lastName, role, createdAt]
+      properties:
+        id:
+          type: integer
+          example: 128
+        email:
+          type: string
+          format: email
+          example: ana@example.com
+        firstName:
+          type: string
+          example: Ana
+        lastName:
+          type: string
+          example: Ramirez
+        role:
+          $ref: '#/components/schemas/Role'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-08-21T13:45:00Z'
 
     # ---- Money, DECISIONS.md item 6 -----------------------------------------
     Money:
