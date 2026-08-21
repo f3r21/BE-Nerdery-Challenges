@@ -506,6 +506,64 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [catalog]
+      summary: Create a product
+      description: |
+        Only a manager may use this operation.
+
+        Send the name, the description and the categories. The server creates the
+        product and enables it.
+
+        A new product has no variant, so it has no price. Add a variant before a buyer
+        can order it.
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                  example: Ringspun cotton tee
+                description:
+                  type: string
+                  maxLength: 5000
+                  example: A heavyweight tee in a regular fit.
+                categoryIds:
+                  type: array
+                  description: The categories this product belongs to.
+                  items:
+                    type: integer
+                  example: [3]
+      responses:
+        '201':
+          description: The server created the product.
+          headers:
+            Location:
+              description: The URL of the new product.
+              schema:
+                type: string
+              example: /products/12
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /products/{id}:
     get:
@@ -529,6 +587,89 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Product'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags: [catalog]
+      summary: Update a product
+      description: |
+        Only a manager may use this operation.
+
+        Send only the fields to change. Set `isActive` to false to disable the product.
+        A disabled product stays visible to a manager and disappears for every other
+        caller.
+
+        Disabling is not deleting. Use DELETE to take a product out of the catalog for
+        good.
+      operationId: updateProduct
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              description: Send at least one field.
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                description:
+                  type: string
+                  maxLength: 5000
+                isActive:
+                  type: boolean
+                  description: Set false to disable the product.
+                categoryIds:
+                  type: array
+                  description: Replaces the whole set of categories.
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: The updated product.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [catalog]
+      summary: Delete a product
+      description: |
+        Only a manager may use this operation.
+
+        The server marks the product deleted and keeps the row. Order history points at
+        the variants of this product, so the row must survive.
+
+        A deleted product is gone for every caller, a manager included. To hide a
+        product and keep it, set `isActive` to false instead.
+      operationId: deleteProduct
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '204':
+          description: The server deleted the product.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -638,6 +779,290 @@ paths:
                     $ref: '#/components/schemas/PageMeta'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /products/{id}/images:
+    post:
+      tags: [catalog]
+      summary: Upload a product image
+      description: |
+        Only a manager may use this operation.
+
+        Send the image file. The server stores the file and returns the new image.
+
+        Set `isPrimary` to make this the card image. The server clears the flag on the
+        image that held it, because a product has one primary image.
+
+        A file that is not an image returns 415. A file above the size limit returns
+        413.
+      operationId: uploadProductImage
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The image file.
+                isPrimary:
+                  type: boolean
+                  default: false
+                  description: Make this the card image of the product.
+      responses:
+        '201':
+          description: The server stored the image.
+          headers:
+            Location:
+              description: The URL of the new image.
+              schema:
+                type: string
+              example: /images/88
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductImage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /images/{id}:
+    delete:
+      tags: [catalog]
+      summary: Remove a product image
+      description: |
+        Only a manager may use this operation.
+
+        The server removes the image from the product and from storage.
+
+        Removing the primary image leaves the product with no card image until a manager
+        marks another one.
+      operationId: deleteProductImage
+      parameters:
+        - $ref: '#/components/parameters/ImageId'
+      responses:
+        '204':
+          description: The server removed the image.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /products/{id}/variants:
+    post:
+      tags: [catalog]
+      summary: Create a variant
+      description: |
+        Only a manager may use this operation.
+
+        Send the size, the colour, the price and the stock. The server creates one
+        variant of this product.
+
+        A size and colour pair this product already has returns 409. The pair is what a
+        buyer chooses, so two variants that share it cannot be told apart.
+
+        A stock below zero returns 422.
+      operationId: createVariant
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [price, stock]
+              properties:
+                size:
+                  type: string
+                  maxLength: 20
+                  example: M
+                color:
+                  type: string
+                  maxLength: 40
+                  example: black
+                price:
+                  allOf:
+                    - $ref: '#/components/schemas/Money'
+                  description: The price of this variant, in minor units.
+                stock:
+                  type: integer
+                  minimum: 0
+                  example: 25
+      responses:
+        '201':
+          description: The server created the variant.
+          headers:
+            Location:
+              description: The URL of the new variant.
+              schema:
+                type: string
+              example: /variants/340
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductVariant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /variants/{id}:
+    patch:
+      tags: [catalog]
+      summary: Update a variant
+      description: |
+        Only a manager may use this operation.
+
+        Send only the fields to change.
+
+        This operation does not change the stock. The stock has its own operation,
+        because the payment webhook writes that value too.
+      operationId: updateVariant
+      parameters:
+        - $ref: '#/components/parameters/VariantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              description: Send at least one field.
+              properties:
+                size:
+                  type: string
+                  maxLength: 20
+                color:
+                  type: string
+                  maxLength: 40
+                price:
+                  allOf:
+                    - $ref: '#/components/schemas/Money'
+                  description: The new price, in minor units.
+      responses:
+        '200':
+          description: The updated variant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductVariant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [catalog]
+      summary: Remove a variant
+      description: |
+        Only a manager may use this operation.
+
+        A variant that appears in any order returns 409. Order history points at the
+        variant row, so removing it would rewrite what a customer bought. Set the stock
+        to zero instead.
+      operationId: deleteVariant
+      parameters:
+        - $ref: '#/components/parameters/VariantId'
+      responses:
+        '204':
+          description: The server removed the variant.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /variants/{id}/stock:
+    patch:
+      tags: [catalog]
+      summary: Set the stock of a variant
+      description: |
+        Only a manager may use this operation.
+
+        Send the number of units on hand. The value is absolute and it is not a change
+        to apply.
+
+        This value has a second writer. The payment webhook lowers it when an order is
+        paid. The stock is on its own path so that both writers are easy to find.
+
+        A value below zero returns 422.
+      operationId: setVariantStock
+      parameters:
+        - $ref: '#/components/parameters/VariantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [stock]
+              properties:
+                stock:
+                  type: integer
+                  minimum: 0
+                  description: The units on hand after this call.
+                  example: 25
+      responses:
+        '200':
+          description: The variant, with the new stock.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductVariant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
@@ -989,6 +1414,24 @@ components:
         type: integer
       example: 12
 
+    VariantId:
+      name: id
+      in: path
+      required: true
+      description: The id of the variant.
+      schema:
+        type: integer
+      example: 340
+
+    ImageId:
+      name: id
+      in: path
+      required: true
+      description: The id of the image.
+      schema:
+        type: integer
+      example: 88
+
   responses:
 
     # Every non-2xx response $refs one of these. DECISIONS.md item 7.
@@ -1033,6 +1476,22 @@ components:
     UnprocessableEntity:
       description: Well formed, and invalid whatever the state. The same request cannot
         succeed later.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    # RFC 9110 15.5.14 names this code Content Too Large. The assigned HTTP Status Codes
+    # reading prints the RFC 2616 name, Request Entity Too Large. RFC 2616 is obsolete
+    # twice over, so the current name is the one used here.
+    ContentTooLarge:
+      description: The file is above the size limit for this operation.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnsupportedMediaType:
+      description: The request carries a media type this operation does not accept. A
+        wrong media type is 415 and not 400.
       content:
         application/problem+json:
           schema:
