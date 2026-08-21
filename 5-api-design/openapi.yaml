@@ -1,14 +1,26 @@
-# Skeleton only. The contract itself (paths, schemas, status codes, error shape) is
-# authored by hand against DECISIONS.md. What is here exists to prove the toolchain runs
-# before the document is two thousand lines long:
+# The contract (paths, schemas, status codes, error shape) is authored by hand against
+# DECISIONS.md. Run both linters from the repository root before every commit:
 #
 #   npx --yes @redocly/cli@latest lint 5-api-design/openapi.yaml
-#   npx --yes @stoplight/spectral-cli@6 lint 5-api-design/openapi.yaml
+#   npx --yes @stoplight/spectral-cli@6 lint 5-api-design/openapi.yaml \
+#     --ruleset 5-api-design/.spectral.yaml
 #
-# Both are clean at 0 errors. Three warnings are left standing on purpose rather than
-# silenced with placeholder data: `info-license` and `info-contact` (this is coursework,
-# not a published API) and `no-server-example.com`. The server really is localhost. That
-# rule exists for public descriptions.
+# `--ruleset` is not optional. Spectral resolves the ruleset against the working
+# directory, not against the document, so it exits with "No ruleset has been found"
+# without it. README.md says the same.
+#
+# Measured 2026-08-21 with 5 operations authored: Redocly 0 errors and 10 warnings,
+# Spectral 0 errors and 9 warnings. Nothing is silenced with placeholder data. Re-measure
+# before you quote either number. Both move as operations land, which is what makes the
+# operation count the honest anchor here rather than a line count.
+#
+#   1 info-license           Redocly only. This is coursework, not a published API.
+#   1 info-contact           Spectral only. The two tools ask for different info fields.
+#   1 no-server-example.com  The server really is localhost. That rule guards public
+#                            descriptions.
+#   8 unused components      Counted by both tools. This is the authoring checklist:
+#                            each one waits for an operation that is not written yet,
+#                            so anything still unused at the end was skipped.
 #
 # 3.0.3, not 3.1: @nestjs/swagger emits 3.0.0, so Week 3's generated document stays
 # diffable against this one. The concrete tell is nullability: 3.0 spells it
@@ -95,7 +107,13 @@ paths:
     get:
       tags: [auth]
       summary: List the devices signed in to this account
+      description: |
+        The server returns one entry for each device that is signed in to this account.
+        The response is paginated. Use `limit` and `offset` to select a page.
       operationId: listSessions
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
       responses:
         '200':
           description: The devices signed in to this account.
@@ -153,6 +171,18 @@ paths:
     post:
       tags: [auth]
       summary: Exchange a refresh token for new tokens
+      description: |
+        This operation is public. It does not need an access token.
+
+        Send the refresh token. The server returns a new access token and a new refresh
+        token. The server deletes the refresh token that you sent.
+
+        A refresh token works one time only. If the server receives one that was already
+        used, the server deletes every refresh row for that user. The server assumes an
+        attacker stole the token. Each device must sign in again.
+
+        A refresh token that is unknown, expired or already used returns 401 with the
+        `refresh-token-unknown` problem type.
       operationId: refreshSession
       security: []
       requestBody:
@@ -327,6 +357,36 @@ components:
     Role:
       type: string
       enum: [MANAGER, CLIENT, DELIVERY_PERSON]
+
+  # ---- Query parameters, DECISIONS.md item 3 ------------------------------
+  # Every collection takes this pair. The bounds repeat PageMeta, so a caller reads the
+  # same numbers on the request side and on the response side. A collection that does
+  # not reference both of these is a collection that returns an unbounded array.
+  parameters:
+
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: The maximum number of rows to return. The default is 20 and the
+        maximum is 100.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      example: 20
+
+    Offset:
+      name: offset
+      in: query
+      required: false
+      description: The number of rows to skip before the first row of this page.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      example: 40
 
   responses:
 

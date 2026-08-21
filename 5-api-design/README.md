@@ -28,9 +28,14 @@ ERD commit `8d47aae` on `challenge/erd`. Week 3 implements it.
 
 ## Decisions about the toolchain
 
-**Three warnings stay.** Do not silence them with placeholder data. `info-license` and
-`info-contact` do not apply to coursework. `no-server-example.com` is correct: the server
-really is localhost. The document has zero errors.
+**The warnings stay.** Do not silence them with placeholder data. Measured 2026-08-21 with
+5 operations authored: Redocly reports 0 errors and 10 warnings. Spectral reports 0 errors
+and 9 warnings. Re-measure before you quote either number. Both move as operations land.
+
+The two tools ask for different `info` fields. Redocly asks for `license` and Spectral asks
+for `contact`. Neither applies to coursework. `no-server-example.com` is correct, because
+the server really is localhost. The other 8 warnings name unused components, which is the
+authoring checklist rather than a defect.
 
 **3.0.3, not 3.1.** `@nestjs/swagger` emits 3.0.0, so staying on 3.0 keeps Week 3's
 generated document diffable against this one and the diff reports drift rather than a
