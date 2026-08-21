@@ -9,18 +9,19 @@
 # directory, not against the document, so it exits with "No ruleset has been found"
 # when you omit the flag. README.md says the same.
 #
-# Measured 2026-08-21 with 5 operations authored: Redocly 0 errors and 10 warnings,
-# Spectral 0 errors and 9 warnings. Nothing is silenced with placeholder data. Re-measure
-# before you quote either number. Both move as operations land, so the operation count
-# is the honest anchor here, not a line count.
+# Measured 2026-08-21 with all 36 operations authored: Redocly 0 errors and 2 warnings,
+# Spectral 0 errors and 1 warning. Nothing is silenced with placeholder data. Re-measure
+# before you quote either number.
 #
 #   1 info-license           Redocly only. This is coursework, not a published API.
 #   1 info-contact           Spectral only. The two tools ask for different info fields.
 #   1 no-server-example.com  The server really is localhost. That rule guards public
 #                            descriptions.
-#   8 unused components      Counted by both tools. This is the authoring checklist:
-#                            each one waits for an operation that is not written yet,
-#                            so anything still unused at the end was skipped.
+#
+# The unused-component warnings are gone, and that is the number worth watching. It stood
+# at 8 when only the auth block existed, and each one named a component waiting for an
+# operation nobody had written. At 0, every component in this file is referenced, so no
+# feature was left behind.
 #
 # 3.0.3, not 3.1: @nestjs/swagger emits 3.0.0, so Week 3's generated document stays
 # diffable against this one. The concrete tell is nullability: 3.0 spells it

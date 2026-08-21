@@ -29,8 +29,8 @@ ERD commit `8d47aae` on `challenge/erd`. Week 3 implements it.
 ## Decisions about the toolchain
 
 **The warnings stay.** Do not silence them with placeholder data. Measured 2026-08-21 with
-5 operations authored: Redocly reports 0 errors and 10 warnings. Spectral reports 0 errors
-and 9 warnings. Re-measure before you quote either number. Both move as operations land.
+all 36 operations authored: Redocly reports 0 errors and 2 warnings. Spectral reports 0
+errors and 1 warning. Re-measure before you quote either number.
 
 The two tools ask for different `info` fields. Redocly asks for `license` and Spectral asks
 for `contact`. Neither applies to coursework. `no-server-example.com` is correct, because
