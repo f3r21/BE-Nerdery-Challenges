@@ -1282,9 +1282,8 @@ paths:
       description: |
         The server returns one page of the orders of the signed-in user.
 
-        Every filter is optional and the server applies the ones it receives. `from` is
-        inclusive and `to` is exclusive, so a day is `from` that day and `to` the next
-        one.
+        Every filter is optional and the server applies the ones it receives. To select
+        one day, set `createdFrom` to that day and `createdTo` to the next day.
 
         The price filters read the order total in minor units.
       operationId: listMyOrders

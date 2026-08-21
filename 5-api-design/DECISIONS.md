@@ -16,7 +16,7 @@ A decision with no "Gave up" line is not a decision, it is a default nobody exam
 | 2 | Error shape | RFC 9457 Problem Details, `application/problem+json` |
 | 3 | Pagination | `{data, meta}` envelope, `offset` / `limit`, `meta.total` |
 | 4 | Field casing | `camelCase`, query parameters included |
-| 5 | Date-time | RFC 3339 with `Z`, full datetimes on filters, `from` inclusive and `to` exclusive |
+| 5 | Date-time | RFC 3339 with `Z`, full datetimes on filters, `createdFrom` inclusive and `createdTo` exclusive |
 | 6 | Money | Integer minor units (cents), no `currency` field |
 | 7 | Status codes | 400 on validation, 404 on another client's order. 403 protects an action, 404 protects a fact |
 | 8 | Tokens | 15 min access, 7 day refresh, rotation on use, per-device sign-out, typed 401 |
@@ -186,8 +186,8 @@ schema says. A JSON API in `camelCase` needs a mapping layer; one in `snake_case
 column names into the contract and couples the two.
 
 **Chose:** `camelCase` for every JSON field, and for **query parameters too**:
-`minPrice`, `maxPrice`, `sortBy`, not `min_price`. The schema stays `snake_case`; the two
-are deliberately different vocabularies.
+`minTotal`, `maxTotal`, `createdFrom`, not `min_total`. The schema stays `snake_case`, and
+the two are deliberately different vocabularies.
 
 **Gave up:** a mapping layer, and the duplication that comes with it. Every field now has
 a column name and a wire name, and both are maintained. In Week 3 that is `@map("created_at")`
@@ -229,11 +229,11 @@ reappear at the API boundary.
 **Chose:** RFC 3339 with an explicit `Z`, always UTC, `2026-08-19T14:32:00Z`. Declared as
 `type: string, format: date-time` everywhere. The order-history range filter takes **full
 datetimes**, not dates. August is
-`?from=2026-08-01T00:00:00Z&to=2026-09-01T00:00:00Z`, not `2026-08-31T23:59:59Z`, which is
-the trap the half-open rule below exists to avoid.
+`?createdFrom=2026-08-01T00:00:00Z&createdTo=2026-09-01T00:00:00Z`, not
+`2026-08-31T23:59:59Z`, which the half-open rule below avoids.
 
-Range semantics, pinned here so no operation has to decide it: **`from` is inclusive,
-`to` is exclusive.** Half-open, so consecutive ranges tile without overlapping or
+Range semantics, pinned here so no operation has to decide it: **`createdFrom` is inclusive,
+`createdTo` is exclusive.** Half-open, so consecutive ranges tile without overlapping or
 dropping a row on the boundary.
 
 **Gave up:** verbosity, and some client convenience. A UI date picker produces a day, not
@@ -247,10 +247,10 @@ GMT-6 laptop disagreed about which orders fall in January. Accepting a bare date
 API would reintroduce exactly that disagreement, because "2026-08-01" is not an instant
 until somebody picks a timezone, and the server picking silently is the failure.
 
-Full datetimes on the filter make the client state the instant it means. Half-open
-intervals then remove the second ambiguity: with an inclusive `to`, "give me August" and
-"give me September" either both claim midnight on the 1st or neither does, and
-`23:59:59Z` silently drops anything in the final second.
+Full datetimes on the filter make the client state the instant it means. Half-open intervals
+remove the second ambiguity. With an inclusive `createdTo`, "give me August" and "give me
+September" either both claim midnight on the 1st or neither does, and `23:59:59Z` silently
+drops anything in the final second.
 
 `format: date-time` is also the OpenAPI-native spelling, so the linter and any generated
 client validate it without a custom pattern.
@@ -259,22 +259,19 @@ client validate it without a custom pattern.
 
 ## 6. Money representation
 
-**The one that bites in Week 3.** `numeric(10,2)` becomes a Prisma `Decimal`, and
-`JSON.stringify` renders a `Decimal` as a **string**. So `{type: number}` is wrong on day
-one, before anybody writes a bug.
-
 **The question.** Integer minor units (cents), a decimal string, or a float.
 
 **What it costs either way.** Integer cents match what Stripe charges and cannot round
-wrong; every client divides by 100. A decimal string is readable and forces every client
+wrong, and every client divides by 100. A decimal string is readable and forces every client
 to parse before arithmetic. A float is the one option that is simply incorrect for money.
+Doing nothing is not neutral: `numeric(10,2)` becomes a Prisma `Decimal`, and
+`JSON.stringify` renders a `Decimal` as a **string**, so `{type: number}` is a contract the
+implementation contradicts on day one.
 
-**Applies to, without exception.** `price`, `priceAtPurchase`, `discountAmount`,
-`subtotal`, `total`, `minPurchaseAmount`, **and the `minPrice` / `maxPrice` query
-parameters.** Mismatching the params against the response fields is how a frontend divides
-by 100 in one place and not the other.
-
-**Chose:** integer minor units. Every money field is `type: integer` and carries a value
+**Chose:** integer minor units, everywhere and without exception. That is `price`,
+`unitPrice`, `lineTotal`, `subtotal`, `total`, and the `minTotal` and `maxTotal` query
+parameters. Mismatching the parameters against the response fields is how a frontend divides
+by 100 in one place and not the other. Every money field is `type: integer` and carries a value
 in cents, so 19.99 is `1999`. No `currency` field; the store is single-currency and the
 currency is stated once in `info.description`. The ERD keeps `numeric(10,2)` as storage,
 so cents are a wire format, not a storage format.
@@ -312,11 +309,11 @@ zero. A decimal-string API would hand clients a value that needs re-padding befo
 which integer cents avoids entirely. That rules out the float option
 before taste enters, and float is wrong for money regardless.
 
-Between integer cents and a decimal string, Stripe decides it: its API already speaks
-integer minor units, so cents at this boundary means the payment path contains no
-conversion at all, and that is the one path where a rounding error costs real money. A
-decimal string would also be exact, but JavaScript has no decimal type, so every client
-parses `"19.99"` into a float anyway and the exactness is lost at the first arithmetic.
+Between integer cents and a decimal string, Stripe decides it. Its API already speaks integer
+minor units, so cents at this boundary leave the payment path with no conversion at all. That
+is the one path where a rounding error costs real money. A decimal string would also be
+exact, but JavaScript has no decimal type, so every client parses `"19.99"` into a float
+anyway and the exactness is lost at the first arithmetic.
 
 The `currency` omission is safe because **adding a field to a response is non-breaking for
 a tolerant reader**, which is the normal case and the one this API's consumer is. It is not
@@ -381,11 +378,10 @@ existence to an attacker walking ids.
 framework agree without configuration, and every override is a place they can silently
 drift apart.
 
-404-over-403 is the standard leak-prevention answer and the source states it outright: 404
+404-over-403 is the standard leak-prevention answer, and the source states it outright. 404
 is the documented choice *"when the server does not wish to reveal exactly why the request
-has been refused."* Order ids are plain integers in this schema, not opaque, so a client can
-guess them, and a 403/404 difference turns guessing into an enumeration of which orders
-exist. Note this does not depend on the ids being strictly sequential: `store.dbml` declares
+has been refused."* Order ids are plain integers here, not opaque, so a client can guess
+them. A 403 or 404 difference then turns guessing into an enumeration of which orders exist. Note this does not depend on the ids being strictly sequential: `store.dbml` declares
 `id integer [primary key]` with no `increment`, so nothing in the ERD promises a sequence.
 Guessability is enough.
 
