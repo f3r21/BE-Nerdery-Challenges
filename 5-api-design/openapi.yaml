@@ -81,15 +81,29 @@ paths:
               type: object
               required: [email, password]
               properties:
+                # Every property below carries the rule its 400 fires on. `Problem.errors`
+                # promises one message per rejected field, so a field with no rule is a
+                # message the server can never produce. The ERD declares all 18 of its
+                # varchars without a length, so these bounds are the contract's own and the
+                # schema has to be given the matching ones.
                 email:
                   type: string
                   format: email
+                  maxLength: 254
+                  description: RFC 5321 4.5.3.1.3 caps a forward-path at 256 octets
+                    including the punctuation, which leaves 254 for the address.
                   example: ana@example.com
                 password:
                   type: string
                   format: password
+                  minLength: 8
+                  maxLength: 128
+                  description: The maximum is a cost bound, not a security rule. The server
+                    hashes the value it receives. An unbounded field lets one request
+                    consume a large amount of processor time.
                 deviceName:
                   type: string
+                  maxLength: 64
                   description: A label for this device. The user sees this label in the
                     device list.
                   example: Ana iPhone
@@ -104,6 +118,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     get:
       tags: [auth]
       summary: List the devices signed in to this account
@@ -131,6 +147,8 @@ paths:
                     $ref: '#/components/schemas/PageMeta'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /auth/sessions/current:
     delete:
@@ -146,6 +164,8 @@ paths:
           description: The server deleted the session.
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /auth/sessions/{id}:
     delete:
       tags: [auth]
@@ -167,6 +187,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /auth/refresh:
     post:
       tags: [auth]
@@ -195,6 +217,10 @@ paths:
               properties:
                 refreshToken:
                   type: string
+                  minLength: 1
+                  maxLength: 512
+                  description: The value returned by the previous call. It is opaque, so the
+                    only rules the contract can state are that it is present and bounded.
       responses:
         '200':
           description: The server issued new tokens.
@@ -206,6 +232,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
 
   securitySchemes:
@@ -221,14 +249,18 @@ components:
       properties:
         id:
           type: integer
+          example: 42
         deviceName:
           type: string
+          example: Ana iPhone
         createdAt:
           type: string
           format: date-time
+          example: '2026-08-21T09:14:00Z'
         expiresAt:
           type: string
           format: date-time
+          example: '2026-08-28T09:14:00Z'
 
     # ---- Errors, DECISIONS.md item 2 ----------------------------------------
     # RFC 9457, which obsoletes RFC 7807. Served as application/problem+json, never
@@ -312,10 +344,12 @@ components:
         accessToken:
           type: string
           description: A bearer token. It is valid for 15 minutes.
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.PAYLOAD.SIGNATURE
         refreshToken:
           type: string
           description: It is valid for 7 days. It rotates on every use. Keep the new
             value and discard the old one.
+          example: 8f14e45fceea167a5a36dedd4bea2543f8b3c9e1d0a7b264
 
     # ---- Pagination, DECISIONS.md item 3 ------------------------------------
     # Every collection returns this envelope. No endpoint returns a bare array.
@@ -354,9 +388,17 @@ components:
     OrderStatus:
       type: string
       enum: [pending, paid, processing, shipped, delivered, cancelled]
+    # Lower case to match OrderStatus above. The document had two enums in two
+    # conventions, and OrderStatus is the one that reproduces the ERD's `order_status`
+    # exactly, so it is the one that wins.
+    #
+    # This still does not match the ERD, which stores roles as rows in `user_role` with
+    # `name varchar // Manager, Client, Delivery`. Two gaps remain and both belong to the
+    # Saturday ERD pass: the schema leaves open a set this contract closes, and it spells
+    # the third role `Delivery` where the brief says Delivery Person.
     Role:
       type: string
-      enum: [MANAGER, CLIENT, DELIVERY_PERSON]
+      enum: [manager, client, delivery_person]
 
   # ---- Query parameters, DECISIONS.md item 3 ------------------------------
   # Every collection takes this pair. The bounds repeat PageMeta, so a caller reads the
