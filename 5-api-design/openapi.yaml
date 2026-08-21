@@ -158,6 +158,8 @@ paths:
                       $ref: '#/components/schemas/Session'
                   meta:
                     $ref: '#/components/schemas/PageMeta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -754,6 +756,8 @@ paths:
                       $ref: '#/components/schemas/ProductSummary'
                   meta:
                     $ref: '#/components/schemas/PageMeta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':

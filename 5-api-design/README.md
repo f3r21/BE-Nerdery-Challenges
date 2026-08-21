@@ -34,8 +34,11 @@ errors and 1 warning. Re-measure before you quote either number.
 
 The two tools ask for different `info` fields. Redocly asks for `license` and Spectral asks
 for `contact`. Neither applies to coursework. `no-server-example.com` is correct, because
-the server really is localhost. The other 8 warnings name unused components, which is the
-authoring checklist rather than a defect.
+the server really is localhost. Those three are the whole remainder.
+
+Unused-component warnings are gone, and that number is the one worth watching. It stood at 8
+when only the auth block existed, and each warning named a component waiting for an operation
+nobody had written. At 0, every component in the file is referenced.
 
 **3.0.3, not 3.1.** `@nestjs/swagger` emits 3.0.0, so staying on 3.0 keeps Week 3's
 generated document diffable against this one and the diff reports drift rather than a

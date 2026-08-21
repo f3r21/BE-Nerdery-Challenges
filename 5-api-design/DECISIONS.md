@@ -268,10 +268,12 @@ Doing nothing is not neutral: `numeric(10,2)` becomes a Prisma `Decimal`, and
 `JSON.stringify` renders a `Decimal` as a **string**, so `{type: number}` is a contract the
 implementation contradicts on day one.
 
-**Chose:** integer minor units, everywhere and without exception. That is `price`,
-`unitPrice`, `lineTotal`, `subtotal`, `total`, and the `minTotal` and `maxTotal` query
-parameters. Mismatching the parameters against the response fields is how a frontend divides
-by 100 in one place and not the other. Every money field is `type: integer` and carries a value
+**Chose:** integer minor units, everywhere and without exception. Twelve response fields carry
+it (`price`, `priceFrom`, `unitPrice`, `lineTotal`, `subtotal`, `total`, `amount`) and so do
+the `minTotal` and `maxTotal` query parameters. Re-derive the list rather than trusting this
+one: every field that references the `Money` schema is a money field, and the count is what a
+`$ref` sweep of `components/schemas` returns. Mismatching the parameters against the response
+fields is how a frontend divides by 100 in one place and not the other. Every money field is `type: integer` and carries a value
 in cents, so 19.99 is `1999`. No `currency` field; the store is single-currency and the
 currency is stated once in `info.description`. The ERD keeps `numeric(10,2)` as storage,
 so cents are a wire format, not a storage format.
