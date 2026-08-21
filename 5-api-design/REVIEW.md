@@ -69,7 +69,8 @@ deferred list. Run against the Week 1 ERD at `8d47aae` and against the assigned 
 **Lenses run.** The four from `Week 2 ...md:264-267` as in round 1, plus three more:
 requirement coverage against `Challenge - T-Shirt Store API.md` features 1 to 10; the
 document against the ERD it claims to be written on; and the document against the obligations
-stated in the week's own required readings, which is what the review session grades.
+stated in the week's own required readings. The last of the three is what the review session
+grades.
 
 **Findings were adversarially verified** before entering this ledger. One was refuted
 outright and eleven were downgraded, and those do not appear below.
@@ -105,37 +106,35 @@ outright and eleven were downgraded, and those do not appear below.
 
 **R2-2, and it is closed in the document.**
 
-`GET /auth/sessions` returns a `{data, meta}` envelope whose `PageMeta.limit` and
-`PageMeta.offset` are both in `required`, and the operation declares no `parameters` at all.
-`grep -n "in: query"` returns nothing across all 390 lines, and there is no
-`components/parameters` block to reference. The document tells a caller how many rows were
-skipped and gives it no way to skip any. That is a missing request shape, which is one of the
-three kinds the week's bar names, and it contradicts item 3's own words: every collection uses
-this shape "without exception". The first collection authored uses half of it.
+`GET /auth/sessions` returns a `{data, meta}` envelope that requires `PageMeta.limit` and
+`PageMeta.offset`, and declares no `parameters` at all. It tells a caller how many rows were
+skipped and gives it no way to skip any. `grep -n "in: query"` returns nothing across all 390
+lines, and there is no `components/parameters` block to reference. That is a missing request
+shape, one of the three kinds the week's bar names, and it contradicts item 3's own words:
+every collection uses this shape "without exception". The first collection authored uses half
+of it.
 
 It is the right hole to fix first because it is about to be copied. Five or more collections
-follow, and a reusable `Limit` and `Offset` pair in `components/parameters` is what all of
-them want. Fixing it after they exist is five edits instead of one.
+follow, and one reusable `Limit` and `Offset` pair in `components/parameters` serves all of
+them. Fixing it after they exist is five edits instead of one.
 
-**R2-1 is the second fix and it needed correcting rather than promoting.** The first draft of
-this ledger called the missing `Location` header "a reading assigned and ignored". That
-overstates it. Both readings say SHOULD, and RFC 9110 15.3.2 is weaker still: the created
-resource is identified "by either a Location header field in the response or, if no Location
-header field is received, by the target URI". Omitting the header is permitted. What is
-genuinely wrong here is narrower and still worth fixing: the fallback identifies the target
-URI, which is the collection, so nothing tells the client which session it just created. Item
-10's whole argument for the noun path is that the client can address a row, and today the
-operation that creates the row does not say which one it is.
+**R2-1 is the second fix, and the finding itself needed correcting.** The first draft of this
+ledger called the missing `Location` header "a reading assigned and ignored". That overstates
+it. Both readings say SHOULD, and RFC 9110 15.3.2 is weaker still: with no `Location` header
+the created resource is identified "by the target URI". Omitting the header is permitted. The
+narrower fault is real: the target URI here is the collection, so nothing tells the client
+which session it just created. Item 10 argues for the noun path because a client can address
+a row, and today the operation that creates the row does not say which one.
 
-Recording the correction rather than quietly rewriting it, because overstating a SHOULD into
-a violated rule is the exact fault the reading-contradiction sheet in the vault charges these
-readings with. Making the same move while auditing them would not survive being asked.
+I record the correction instead of quietly rewriting it. Overstating a SHOULD into a violated
+rule is the exact fault the reading-contradiction sheet in the vault charges these readings
+with, and making the same move while auditing them would not survive being asked.
 
 **R2-7 is the deepest finding and it is not closed in this document.** It is an ERD question:
 either the refresh row keeps its `id` and `created_at` across rotation and only `token_hash`
 and `expires_at` change, or session identity is separated from the token row. That lands in
-Saturday's ERD pass. What belongs in the contract is one sentence in item 8 saying which, and
-a note on `Session.createdAt` saying whether it means first sign-in or last rotation.
+Saturday's ERD pass. The contract needs one sentence in item 8 saying which, and a note on
+`Session.createdAt` saying whether it means first sign-in or last rotation.
 
 ### What I rejected, and why
 
@@ -143,8 +142,6 @@ a note on `Session.createdAt` saying whether it means first sign-in or last rota
 own bar, and R2-11, R2-17 and R2-20 are the likeliest candidates.)*
 
 ### Refuted before reaching this ledger
-
-Recorded because the audit ran adversarially and the rejections are part of the result.
 
 - **"No mentor review is recorded anywhere."** Refuted. The Week 1 feedback arrived off
   GitHub and its eight-row accept-reject ledger is committed at

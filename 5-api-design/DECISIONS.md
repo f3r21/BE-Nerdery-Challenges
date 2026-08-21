@@ -23,12 +23,11 @@ A decision with no "Gave up" line is not a decision, it is a default nobody exam
 | 9 | Password change | `PATCH /v1/users/me/password` exists, kills every session |
 | 10 | Path naming | A segment is a noun when a row is addressable, a `kebab-case` verb when not |
 
-Two chains run through this table. Items 2, 8 and 9 depend on each other: item 2's
-`Problem.type` is what makes item 8's typed 401 work, and item 8's session eviction is what
-makes item 9 cheap. Item 10 then depends on items 1, 4 and 8: it puts no version prefix on a
-path key because item 1 puts it in `servers.url`, it spells a verb `kebab-case` while item 4
-keeps query parameters `camelCase`, and it exists at all because item 8's refresh table gave
-sessions a row worth naming.
+Items 2, 8 and 9 depend on each other: item 2's `Problem.type` is what makes item 8's typed
+401 work, and item 8's session eviction is what makes item 9 cheap. Item 10 depends on items
+1, 4 and 8. It puts no version prefix on a path key (item 1 puts it in `servers.url`) and
+spells a verb `kebab-case` while item 4 keeps query parameters `camelCase`. It exists at all
+because item 8's refresh table gave sessions a row worth naming.
 
 ---
 
@@ -58,11 +57,10 @@ REST prefers versioning by `Accept` header or media type. And the prefix asserts
 could exist, so "what would v2 be?" is now a fair question with no answer yet.
 
 **Why:** it costs four characters now and cannot be added later without breaking every
-client at once. The asymmetry is the whole argument: the cost of having it and never
-needing it is trivial, the cost of needing it and not having it is a coordinated break.
-The brief's breaking-change table lists changing a status code as a break, so the escape
-hatch is not hypothetical for this API. Adding a value to a response enum is also breaking
-for a consumer with an exhaustive switch, which is my own reading and is not in the table.
+client at once. The brief's breaking-change table lists changing a status code as a break,
+so the escape hatch is not hypothetical for this API. Adding a value to a response enum is
+also breaking for a consumer with an exhaustive switch, which is my own reading and is not
+in the table.
 
 ---
 
@@ -72,24 +70,21 @@ for a consumer with an exhaustive switch, which is my own reading and is not in 
 its fields are.
 
 **What it costs either way.** One shape means every client writes one error handler.
-Per-endpoint shapes carry more detail but nothing can consume them generically.
-
-**The Week 3 trap, worth deciding around now.** Nest's default error body is
-`{statusCode, message, error}` where `message` is an **array** when it comes from
-`ValidationPipe` and a **string** when it comes from a plain `NotFoundException`. Pinning
-one shape here means a global exception filter in Week 3 rather than a surprise.
+Per-endpoint shapes carry more detail but nothing can consume them generically. Leaving the
+shape unpinned means inheriting Nest's default, `{statusCode, message, error}`, where
+`message` is an **array** from `ValidationPipe` and a **string** from a plain
+`NotFoundException`.
 
 **Chose:** RFC 9457 Problem Details, which obsoletes RFC 7807. One `Problem` component
-`$ref`d by every non-2xx
-response, served as `application/problem+json`, with members `type`, `title`, `status`,
-`detail` and `instance`. Validation failures use the spec's extension-member mechanism to
-add an `errors` array of `{field, message}`, which is where `ValidationPipe`'s array goes.
+`$ref`d by every non-2xx response, served as `application/problem+json`, with members
+`type`, `title`, `status`, `detail` and `instance`. Validation failures use the spec's
+extension-member mechanism to add an `errors` array of `{field, message}`, which is where
+`ValidationPipe`'s array goes.
 
-**A `type` is not needed on every problem.** RFC 9457 registers `about:blank`, meaning the
-problem has no semantics beyond the HTTP status code, and it is the assumed value when
-`type` is absent. So a type URI is minted only where the status code alone cannot tell a
-client which failure it hit. Here that is the three 401 cases and the three 409 cases.
-Everything else omits it.
+RFC 9457 registers `about:blank` for a problem with no semantics beyond its HTTP status
+code, and treats it as the value when `type` is absent. A type URI is minted only where the
+status code alone cannot tell a client which failure it hit: the three 401 cases and the
+three 409 cases.
 
 **The six members**, as a closed enum in `components/schemas/ProblemType` so the linter
 enforces them across every operation rather than each one inventing its own spelling:
@@ -113,7 +108,7 @@ promo-code-invalid are the likely additions when orders and payments are authore
 starts at first release: after that, adding a member is a minor version and removing one is
 breaking.
 
-**`https`, not a `tag:` or `urn:` URI, and it carries an obligation.** RFC 9457 recommends
+**`https`, not a `tag:` or `urn:` URI.** RFC 9457 recommends
 resolvable URIs, and says switching to a non-resolvable one later would itself be breaking.
 Its section 3.1.1 offers `tag:` for APIs that cannot serve documentation. I can serve it, so
 the choice is `https` and **Week 3 serves a short page at `/problems/{slug}`**, one per
@@ -121,7 +116,7 @@ member. The domain is the store's canonical one and is deliberately not the `ser
 because a type URI has to be identical in development and in production.
 
 Consumers `SHOULD NOT` dereference automatically, per the same section, so nothing breaks in
-the window before those pages exist. The URI is an identifier first and a link second.
+the window before those pages exist.
 
 **Gave up:** three things. Nest ships no support for it, so this costs a global exception
 filter in Week 3 plus an explicit `P2002` mapping, and the filter is now load-bearing
@@ -130,16 +125,14 @@ is redundancy the standard accepts and I inherit. And the `type` URIs are a prom
 reviewer can ask what is at the other end of one.
 
 **Why:** at least three places in this API return the same status code for different
-reasons. Sign-up 409s on a taken email, cancel 409s on an already-shipped order, and
-add-to-cart 409s on insufficient stock. A client that shows the right message has to tell
-them apart, and a status code alone cannot carry that. String-matching `message` is the
-alternative and it breaks the moment the wording changes.
+reasons, and the code alone cannot say which. String-matching `message` is the alternative,
+and it breaks the moment the wording changes.
 
-Given that a machine-readable discriminator is required, the remaining choice was between
-inventing a shape and citing one. RFC 9457 is an IETF standard with tooling across
-languages, and its extension-member rule means the validation-error array fits without
-leaving the standard. Inventing `{code, message, details[]}` would have been slightly
-lighter and would have needed defending as a local invention instead.
+The remaining choice was between inventing a shape and citing one. RFC 9457 is an IETF
+standard with tooling across languages, and its extension-member rule means the
+validation-error array fits without leaving the standard. Inventing
+`{code, message, details[]}` would have been slightly lighter and would have needed
+defending as a local invention instead.
 
 ---
 
@@ -152,13 +145,11 @@ lighter and would have needed defending as a local invention instead.
 Offset pagination is easy and drifts when rows are inserted mid-scan. Cursor pagination is
 stable and cannot jump to page 7.
 
-**Applies to.** Products, categories, order history, and anything added later. The failure
-mode is two collections that paginate differently, which the review round will look for.
-
-**Chose:** an envelope, `{ data: [...], meta: { total, limit, offset } }`, with
-`offset` and `limit` as query parameters. `limit` has a default and a documented maximum
-so an unbounded request cannot ask for the whole table. Every collection in this API uses
-this shape, without exception.
+**Chose:** an envelope, `{ data: [...], meta: { total, limit, offset } }`, with `offset` and
+`limit` as query parameters. `limit` has a default and a documented maximum so an unbounded
+request cannot ask for the whole table. Products, categories, order history and anything
+added later use this shape, without exception, because two collections that paginate
+differently is what a review round finds first.
 
 **Gave up:** two things, and the first is a correctness cost rather than a cosmetic one.
 
@@ -178,8 +169,8 @@ four-week project would be self-inflicted.
 
 `total` is required by the product itself, not by taste: a catalogue with pagination
 controls has to render "page 3 of 18", and the client cannot compute that from a page of
-results. Offset over cursor follows from the same place, because page numbers need
-addressable pages and a cursor cannot jump to page 7.
+results. Offset over cursor follows from the same place: page numbers need addressable
+pages.
 
 Offset also matches Prisma's `skip` and `take` directly, so the contract and the Week 3
 query are the same idea rather than a translation.
@@ -428,31 +419,25 @@ from the application-level dedup above.
 
 ## 8. Token model, and what the contract inherits from it
 
-**Not open.** Mentor item 4 shipped on 2026-08-18 as `abfd505`: a `refresh_tokens` table,
-which is `REVIEW.md` B7's finding accepted and its `tokens_valid_from` fix rejected. See
-`4-database/3-erd/DECISIONS.md` row 4.
-
-What is open is writing down what that forces on this document, before the auth section is
-authored against a different assumption.
+**The question.** Mentor item 4 shipped on 2026-08-18 as `abfd505`: a `refresh_tokens`
+table, which is `REVIEW.md` B7's finding accepted and its `tokens_valid_from` fix rejected.
+See `4-database/3-erd/DECISIONS.md` row 4. What it forces on this document is open, and the
+auth section should not be authored against a different assumption.
 
 - Does `POST /auth/refresh` exist, and what does it accept and return?
 - What does `DELETE /auth/sessions/current` do, and what does it return?
 - What does a 401 mean here: access token expired, refresh row deleted, or both?
-- **The revocation lag.** A signed access token stays valid until it expires, so sign-out
-  revokes the future, not the present. That bound is the access-token lifetime. State the
-  number in `info.description` rather than leaving it implicit; it is the first thing a
-  reviewer will probe.
+- A signed access token stays valid until it expires, so sign-out revokes the future, not
+  the present. How long is that lag, and where is the number written down?
 
 **Chose:** access token 15 minutes, refresh token 7 days, rotation on every refresh,
-per-device sign-out, and a typed 401. In full:
-
-**Lifetimes.** Access token 15 minutes, refresh token 7 days. Both stated in
-`info.description`, not left implicit.
+per-device sign-out, and a typed 401. Both lifetimes are stated in `info.description`, not
+left implicit. In full:
 
 **`POST /v1/auth/refresh`.** Refresh token in the request body, not a cookie. **Rotates on
-every use:** the presented row is deleted and a new one issued. If a refresh token that has
-already been rotated is presented again, every refresh row for that user is deleted, on the
-assumption that the token was stolen and replayed.
+every use:** the presented row is deleted and a new one issued. If an already-rotated token
+is presented again, every refresh row for that user is deleted, on the assumption that it
+was stolen and replayed.
 
 **`DELETE /v1/auth/sessions/current`.** Deletes the presented device's row only, returns 204. Password
 change and password reset delete **every** row for that user.
@@ -471,36 +456,32 @@ cookie would not be.
 Per-device sign-out plus kill-all-on-password-change is two code paths where one would do.
 
 And 15 minutes is a real window: an evicted attacker keeps a working access token for up
-to 15 minutes after a password reset. Nothing here closes that; the decision is to bound
-it and say so.
+to 15 minutes after a password reset, and nothing here closes that.
 
 **Why:**
 
 **Body over cookie** because the cookie trades an XSS problem for a CSRF problem, needs
 `SameSite` and probably a CSRF token, is awkward for a non-browser client, and breaks the
-Swagger "try it out" check the brief requires. The XSS exposure is accepted with that
-named as the reason.
+Swagger "try it out" check the brief requires.
 
 **Rotation** because "what if the refresh token is stolen" is the obvious follow-up to
-choosing a token table over `tokens_valid_from`, and without rotation the honest answer is
+choosing a token table over `tokens_valid_from`. Without rotation the honest answer is
 "it works for seven days and I never find out." With rotation a stolen token is usable
 once, and the replay is the detection signal.
 
-**Per-device sign-out, all-devices on password change**, because these answer different
-questions. Signing out on a laptop should not kill a phone. But the password-reset email
-exists precisely so a user can evict an attacker, and per-device sign-out cannot do that,
-so the eviction case gets the broader delete. This also settles item 9 below, since it is
-the same mechanism.
+**Per-device sign-out, all-devices on password change**, because signing out on a laptop
+should not kill a phone. But the password-reset email exists precisely so a user can evict
+an attacker, and per-device sign-out cannot do that, so the eviction case gets the broader
+delete. This also settles item 9 below, since it is the same mechanism.
 
 **A typed 401** because a bare one leaves the client unable to distinguish "refresh and
 retry" from "send them to the login screen", and a client that guesses will loop. This is
 the payoff for RFC 9457 in item 2.
 
-**Stating the lifetime** because the revocation lag is this design's known weakness and it
-is currently undocumented, which is the worst state for it to be in. Written down it is a
-bounded property with a number attached rather than a hole a reviewer discovers. 15 minutes
-is conventional and defensible in both directions: shorter means more refresh traffic,
-longer means a wider eviction window.
+**Stating the lifetime** because the revocation lag is this design's known weakness, and an
+undocumented weakness is a hole a reviewer finds rather than a bounded property with a
+number on it. 15 minutes is conventional and defensible in both directions: shorter means
+more refresh traffic, longer means a wider eviction window.
 
 ---
 
@@ -509,10 +490,8 @@ longer means a wider eviction window.
 **The question.** The Challenge doc's email trigger is *"when the user changes their
 password"*, which is broader than the forgot/reset flow. Does a guarded
 `PATCH /users/me/password` exist, or is reset the only path a password can change by?
-
-**Why it belongs next to item 8.** It is the same invalidate-live-sessions question. If
-changing a password should kill other devices, that is refresh-token deletion, and the
-endpoint has to say so.
+It is item 8's invalidate-live-sessions question again: if changing a password should kill
+other devices, the endpoint has to delete refresh rows and say so.
 
 **Chose:** `PATCH /v1/users/me/password` exists. Guarded. Body carries the current
 password and the new one. Wrong current password is **401**, not 403, because it is an
@@ -520,30 +499,24 @@ authentication failure rather than a permissions one. On success it fires the sa
 password-change email as the reset flow, deletes **every** refresh row for that user
 including the caller's own, and returns 204. The caller signs in again.
 
-So a password changes by exactly two doors, and both end in the same place: this endpoint,
-and the forgot/reset flow.
-
 **Gave up:** one more operation, one more guard, and a second entry point into the email
 and session-eviction paths, which is a second place they can be got wrong. Deleting the
 caller's own refresh row also means the flow ends by kicking the user out, which reads as
 hostile unless the client explains it.
 
-**Why:** the brief's email trigger is *"when the user changes their password"*, which is
-wider than forgot/reset. Without this endpoint a signed-in user who simply wants a new
-password has to sign out and ask for an email, and the brief's wording is only partly
-met.
+**Why:** without this endpoint a signed-in user who simply wants a new password has to sign
+out and ask for an email, and the brief's email trigger is only partly met.
 
-The cost is genuinely small because item 8 already built the interesting half. Killing
-every session on a password change was decided there, so this endpoint reuses that
-mechanism rather than introducing one.
+The cost is small because item 8 already decided that a password change kills every
+session, so this endpoint reuses that mechanism.
 
-Requiring the current password is what makes it a re-authentication rather than a
-privilege escalation: a stolen access token, valid for up to 15 minutes under item 8,
-cannot be used to seize the account outright. That is the same 15-minute window named
-there, closed at the one endpoint where it would do the most damage.
+Requiring the current password makes it a re-authentication rather than a privilege
+escalation: a stolen access token, valid for up to 15 minutes under item 8, cannot be used
+to seize the account outright. That closes item 8's window at the one endpoint where it
+would do the most damage.
 
-Deleting the caller's own row is deliberate. A credential change should not leave any
-session alive on the old credential, including the one that made the change.
+The caller's own row goes too: a credential change should not leave any session alive on
+the old credential.
 
 ---
 
@@ -581,18 +554,16 @@ stays in the request body, so those two operations keep verbs on security ground
 taste.
 
 **Why:** the resource is already in the ERD. `refresh_tokens` carries an `id` and a
-`device_name`, and that column has one job, which is showing a person which devices are signed
-in. Calling the path `/auth/sessions` describes something that exists. Calling it
+`device_name`. Calling the path `/auth/sessions` describes something that exists. Calling it
 `/auth/sign-out` hides it, and leaves a column in the schema that no endpoint ever reads.
 
-Item 8 already says a user must be able to evict an attacker. Its answer was to delete every
-refresh row on a password change. That works, and it is blunt: you lose every other device to
-get rid of one. `DELETE /auth/sessions/{id}` is the same need at the right granularity, and it
-costs one operation, because the row it deletes was always going to be there.
+Item 8 evicts an attacker by deleting every refresh row on a password change. That works, and
+it is blunt: you lose every other device to get rid of one. `DELETE /auth/sessions/{id}` is the
+same need at the right granularity, and it costs one operation, because the row it deletes was
+always going to be there.
 
-The split is what keeps this from being taste. `forgot-password` has no row behind it, so there
-is nothing to name, and inventing `/password-resets` for the sake of consistency would put a
-reset token in a path segment. Consistency that produces a worse URL stops being worth it.
+`forgot-password` has no row behind it, so there is nothing to name, and inventing
+`/password-resets` for consistency alone would put a reset token in a path segment.
 
 ---
 
@@ -611,28 +582,24 @@ Not cross-cutting enough to block authoring. Decided at first use and recorded h
   notification email at `:122`. The catalog is public, so enumerating it leaks nothing. No
   order id travels anywhere, because the brief has no order confirmation email.
 
-  **What would overturn this**, and one of them is close enough to plan for: an id reaching a
-  place authorization does not cover, such as an order confirmation email, a support chat, or a
-  `Referer` header. A real store sends that email. The answer there is not UUID primary keys,
-  it is a separate customer-facing order number, so orders carry an opaque `orderNumber`
-  alongside the integer key. That column is an ERD change, not a contract change, and it is
-  scheduled with the Saturday ERD pass.
+  **What would overturn this:** an id reaching a place authorization does not cover, such as an
+  order confirmation email, a support chat, or a `Referer` header. A real store sends that
+  email. The fix is not UUID primary keys but a separate customer-facing order number, so
+  orders carry an opaque `orderNumber` beside the integer key. That column is an ERD change,
+  not a contract change, and it is scheduled with the Saturday ERD pass.
 
   **Gave up:** enumerability, and the option to change course without a break. Every product
-  id in this contract is guessable, so anyone can walk the catalog. That costs nothing while
-  the catalog is public, and it is a real property rather than a non-issue. The larger cost is
-  the second one: an id is in the response body of nearly every operation, so moving to opaque
-  ids later changes the type of a field on `Product`, `Order`, `CartItem` and every id
-  parameter at once. The week's own table calls a type change a break. Sequential ids are
-  therefore a choice that gets harder to reverse with each operation added, and 36 operations
-  now depend on it.
+  id in this contract is guessable, so anyone can walk the catalog, which costs nothing while
+  the catalog is public. The second cost grows. An id sits in the response body of nearly every
+  operation, so moving to opaque ids later changes the type of a field on `Product`, `Order`,
+  `CartItem` and every id parameter at once. The week's own table calls a type change a break,
+  and 36 operations now depend on the choice.
 - **Add-to-cart semantics.** *Settled 2026-08-21, before the cart block.* **One row per variant
   per cart, addressed by the variant id, with the request setting the quantity rather than
-  adding to it.** Item 10 answers this without reaching for a reading: a segment is a noun when
-  the client can address a row, and the client addresses this row by the variant id it just
-  chose. Nothing needs minting, which is the one condition `PUT vs POST` attaches to a create
-  that is not a POST, and the cart is the only place in this contract where that condition
-  holds.
+  adding to it.** Item 10 answers this: a segment is a noun when the client can address a row,
+  and the client addresses this row by the variant id it just chose. Nothing needs minting,
+  which is the one condition `PUT vs POST` attaches to a create that is not a POST. The cart is
+  the only place in this contract where that holds.
 
   The reason to care is not tidiness. Setting a quantity is idempotent, and RFC 9110 9.2.2
   defines idempotency by the intended effect on the server, so the same request sent twice
@@ -640,58 +607,52 @@ Not cross-cutting enough to block authoring. Decided at first use and recorded h
   and add-to-cart is the operation most likely to be sent twice, because it is the one people
   press again on a slow connection.
 
-  **Gave up:** the reading's "always use POST for CREATE", which this departs from and which is
-  worth naming before a reviewer finds it. And a client that wants one more of something now
-  sends the resulting total rather than a delta, so it has to know the current quantity. It
-  does, because it is rendering the cart, but that is an assumption this contract depends on.
-
-  **What this obliges the ERD to do:** `shopping_cart_items` carries no uniqueness marker
-  today, so two rows for the same variant in one cart are legal. `UNIQUE (cart_id,
-  product_variant_id)` is already on the ERD's agreed-and-not-done list, and this decision is
-  what spends it. Without that constraint the contract promises something the schema does not
+  **Gave up:** the reading's "always use POST for CREATE". A client that wants one more of
+  something now sends the resulting total rather than a delta, so it has to know the current
+  quantity. It does, because it is rendering the cart, but that is an assumption this contract
+  depends on. The other cost is an ERD change. `shopping_cart_items` carries no uniqueness
+  marker today, so two rows for the same variant in one cart are legal. `UNIQUE (cart_id,
+  product_variant_id)` is already on the ERD's agreed-and-not-done list, and this decision
+  depends on it. Without that constraint the contract promises something the schema does not
   enforce.
-- **B4b, what "stock reaches 3" counts.** *Settled 2026-08-21. It changes no operation in this
-  contract, and it is recorded here because it was raised while authoring Week 2.* **A single
-  variant reaching 3 fires the notification, and the audience stays everyone who liked the
-  parent product.**
+- **B4b, what "stock reaches 3" counts.** *Settled 2026-08-21. It changes no operation here,
+  and is recorded because it came up while authoring Week 2.* **A single variant reaching 3
+  fires the notification, and the audience stays everyone who liked the parent product.**
 
   The brief says "when the stock of a product reaches 3" and "notify users who liked the
-  product", so it is written as though stock lived on the product. It does not.
-  `product_variants` carries `stock`, and that is the more correct model, because a store counts
-  Medium Black separately from Large White. The mismatch is the brief's rather than the ERD's,
-  and this entry is how the two are reconciled.
+  product", so it is written as though stock lived on the product. It does not:
+  `product_variants` carries `stock`, which is the more correct model, because a store counts
+  Medium Black separately from Large White. The mismatch is the brief's, not the ERD's.
 
-  The audience half needed no decision. `product_likes` is keyed `(user_id, product_id)`, which
-  already matches what the brief asks for. Only the trigger was open.
+  Only the trigger needed a decision. `product_likes` is keyed `(user_id, product_id)`, which
+  already matches the audience the brief asks for.
 
   **Gave up:** precision, in favour of firing at all. Summing stock across variants is the
-  literal reading and it is the one that fails silently: a product with a hundred Smalls and no
-  Larges never reaches 3, so the person waiting on a Large is never told. Keying likes to the
-  variant would be exact and is wrong for people, who like a shirt rather than a size. The cost
-  of what was chosen is noise, since someone waiting on a Large is emailed because a Medium ran
-  low.
-
-  **What this does not settle:** there is still no `stock_notifications` table, so nothing
-  records that a mail was sent and the same person can be told repeatedly. That is an ERD gap,
-  it is on the agreed-and-not-done list, and it belongs to the Saturday pass.
+  literal reading and it fails silently: a product with a hundred Smalls and no Larges never
+  reaches 3, so the person waiting on a Large is never told. Keying likes to the variant would
+  be exact and wrong for people, who like a shirt rather than a size. The cost is noise:
+  someone waiting on a Large is emailed when a Medium runs low. One thing stays open. No
+  `stock_notifications` table exists, so nothing records that a mail was sent and the same
+  person can be told repeatedly. That gap is on the ERD's agreed-and-not-done list and belongs
+  to the Saturday pass.
 - **Scope, and the operation count it produces.** *Settled 2026-08-21, when authoring
   stopped.* **The three Optional Features are out. Features 1 to 10 are in, and the contract
   holds 36 operations.**
 
   The brief marks 11 (delivery person), 12 (the `delivered` state) and 13 (promo codes) as
-  optional. They are cut. Two traces of them stay on purpose: `OrderStatus` keeps `delivered`
-  and `Role` keeps `delivery_person`, so the contract and the Week 1 ERD describe the same
-  domain, and `orders` keeps both `subtotal` and `total` even though they are always equal
-  without a discount. Adding an optional field later is the one change the week's own table
-  calls safe, so shipping the pair now makes promo support additive rather than a break.
+  optional. They are cut. Two traces stay on purpose. `OrderStatus` keeps `delivered` and
+  `Role` keeps `delivery_person`, so the contract and the Week 1 ERD describe the same domain.
+  `orders` keeps both `subtotal` and `total`, always equal without a discount. Adding an
+  optional field later is the one change the week's own table calls safe, so shipping the pair
+  now makes promo support additive rather than a break.
 
   **Gave up:** the Extra Points, and the ability to say the contract covers the whole ERD.
   `promo_codes`, `assigned_delivery_person_id` and `orders.discount_amount` are columns no
   operation in this document reads or writes. A reviewer can find schema this contract does
   not reach, and the honest answer is that it was cut rather than missed.
 
-  **The count is 36 and not the 39 an earlier derivation gave.** All three differences are
-  consequences of decisions in this file, not omissions:
+  **The count is 36, not the 39 an earlier derivation gave.** All three differences follow from
+  decisions in this file, not from omissions:
 
   | Where | Planned | Actual | Why |
   | --- | --- | --- | --- |
@@ -709,20 +670,19 @@ Not cross-cutting enough to block authoring. Decided at first use and recorded h
   that day and `createdTo` the next. The price pair reads the order total in minor units per
   item 6, so a filter and the field it filters use one representation.
 
-  **Gave up:** a sort parameter, and the shorter names. Nothing in this contract sorts, because
-  the brief asks for filters and pagination and never for an order, so a `sort` parameter would
-  be a guess at a requirement. And `createdFrom` is longer than `from`, which was the first
-  choice: `from` reads as a date on an order collection and reads as nothing in particular
-  anywhere else, and a parameter declared once in `components` is copied to every collection
-  that follows.
+  **Gave up:** a sort parameter, and the shorter names. Nothing in this contract sorts: the
+  brief asks for filters and pagination and never for an order, so a `sort` parameter would be
+  a guess at a requirement. `createdFrom` is longer than `from`, the first choice. `from` reads
+  as a date on an order collection and as nothing in particular anywhere else, and a parameter
+  declared once in `components` is copied to every collection that follows.
 - **Webhook endpoint convention.** *Settled 2026-08-21, with the Stripe endpoint.*
   **`POST /webhooks/stripe`, one route for every event type, `security: []`, and a 200 on a
   replay.**
 
-  It sits under `/webhooks` rather than beside the resources it changes, because the caller is
-  Stripe and not a person, and the route belongs to whoever calls it. One route rather than one
-  per event type, because Stripe signs the envelope and the signature has to be checked before
-  the `type` field is trustworthy enough to route on.
+  It sits under `/webhooks` rather than beside the resources it changes, because a route
+  belongs to whoever calls it and the caller here is Stripe. One route rather than one per
+  event type, because Stripe signs the envelope and the signature has to be checked before the
+  `type` field is trustworthy enough to route on.
 
   `security: []` is honest rather than lax. The bearer scheme does not apply, and the real
   credential is the `Stripe-Signature` header, which the operation declares as a required
@@ -734,8 +694,8 @@ Not cross-cutting enough to block authoring. Decided at first use and recorded h
   document says less about this payload than about any other. Typing both event shapes fully
   would pin this contract to a Stripe API version it does not control.
 
-  The 200-on-replay is the part worth defending. Stripe retries, so a retry must not lower the
-  stock twice. `order_payments.stripe_reference` is unique in the ERD, which is what makes the
+  Stripe retries, so a replay must not lower the stock twice.
+  `order_payments.stripe_reference` is unique in the ERD, which is what makes the
   already-applied check reliable rather than a best effort. That column came out of the Week 1
-  review, and this is the operation that spends it.
+  review, and this is the operation that needs it.
 - **CORS and exposed headers.** Not expressible in OpenAPI; belongs in the Week 3 notes.

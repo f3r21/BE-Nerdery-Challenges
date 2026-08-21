@@ -7,12 +7,12 @@
 #
 # `--ruleset` is not optional. Spectral resolves the ruleset against the working
 # directory, not against the document, so it exits with "No ruleset has been found"
-# without it. README.md says the same.
+# when you omit the flag. README.md says the same.
 #
 # Measured 2026-08-21 with 5 operations authored: Redocly 0 errors and 10 warnings,
 # Spectral 0 errors and 9 warnings. Nothing is silenced with placeholder data. Re-measure
-# before you quote either number. Both move as operations land, which is what makes the
-# operation count the honest anchor here rather than a line count.
+# before you quote either number. Both move as operations land, so the operation count
+# is the honest anchor here, not a line count.
 #
 #   1 info-license           Redocly only. This is coursework, not a published API.
 #   1 info-contact           Spectral only. The two tools ask for different info fields.
@@ -41,8 +41,8 @@ info:
 
     **Tokens.** An access token is valid for 15 minutes. A refresh token is valid for
     7 days and rotates on every use. Sign-out deletes the presented device's refresh
-    row. It does not revoke an access token that is already issued, so revocation lags
-    by up to 15 minutes. Changing or resetting a password deletes every refresh row for
+    row. It does not revoke an access token the server already issued, so revocation
+    lags by up to 15 minutes. Changing or resetting a password deletes every refresh row for
     that user.
 
 servers:
@@ -137,7 +137,7 @@ paths:
       summary: List the devices signed in to this account
       description: |
         The server returns one entry for each device that is signed in to this account.
-        The response is paginated. Use `limit` and `offset` to select a page.
+        The server returns the entries in pages. Use `limit` and `offset` to select a page.
       operationId: listSessions
       parameters:
         - $ref: '#/components/parameters/Limit'
@@ -231,7 +231,7 @@ paths:
                   type: string
                   minLength: 1
                   maxLength: 512
-                  description: The value returned by the previous call. It is opaque, so the
+                  description: The value from the previous call. It is opaque, so the
                     only rules the contract can state are that it is present and bounded.
       responses:
         '200':
@@ -250,7 +250,7 @@ paths:
   /auth/forgot-password:
     post:
       tags: [auth]
-      summary: Ask for a password reset link
+      summary: Request a password reset link
       description: |
         This operation is public. It does not need a token.
 
@@ -259,7 +259,7 @@ paths:
         The server answers 202 whether or not the address has an account. A different
         answer would tell the caller which addresses are registered.
 
-        This operation is rate limited. Too many requests return 429.
+        The server limits the request rate. Too many requests return 429.
       operationId: requestPasswordReset
       security: []
       requestBody:
@@ -325,7 +325,7 @@ paths:
                   format: password
                   minLength: 8
                   maxLength: 128
-                  description: The new password. The same bounds apply as at sign up.
+                  description: The new password. The same bounds apply as in `createUser`.
       responses:
         '204':
           description: The server set the new password and ended every session.
@@ -424,7 +424,8 @@ paths:
         for the device that sent this request. The caller must sign in again. The server
         also sends an email to the account address.
 
-        This operation is rate limited, because it accepts a password guess.
+        The server limits the request rate, because this operation accepts a password
+        guess.
       operationId: changePassword
       requestBody:
         required: true
@@ -466,8 +467,8 @@ paths:
         The server returns one page of products. Each entry carries the lowest price of
         its variants, so a storefront can draw a card without the sizes.
 
-        The entries do not carry the variants. Ask for one product to get them. This is
-        what keeps the list to a fixed number of queries as the page grows.
+        The entries do not carry the variants. Ask for one product to get them. The
+        server therefore runs a fixed number of queries as the page grows.
 
         The server hides a deleted product from every caller. The server hides a disabled
         product unless the caller is a manager and sets `includeInactive`.
@@ -546,7 +547,7 @@ paths:
                   example: A heavyweight tee in a regular fit.
                 categoryIds:
                   type: array
-                  description: The categories this product belongs to.
+                  description: The categories of this product.
                   items:
                     type: integer
                   example: [3]
@@ -610,8 +611,8 @@ paths:
         A disabled product stays visible to a manager and disappears for every other
         caller.
 
-        Disabling is not deleting. Use DELETE to take a product out of the catalog for
-        good.
+        Disabling is not deleting. Use DELETE to remove a product from the catalog
+        permanently.
       operationId: updateProduct
       parameters:
         - $ref: '#/components/parameters/ProductId'
@@ -633,10 +634,10 @@ paths:
                   maxLength: 5000
                 isActive:
                   type: boolean
-                  description: Set false to disable the product.
+                  description: Set this field to false to disable the product.
                 categoryIds:
                   type: array
-                  description: Replaces the whole set of categories.
+                  description: The server replaces the whole set of categories.
                   items:
                     type: integer
       responses:
@@ -691,8 +692,8 @@ paths:
       description: |
         The server records that this user likes this product.
 
-        The operation is idempotent. A second call leaves the same single like. The user
-        comes from the token, so the request carries no body.
+        The operation is idempotent. A second call leaves the same single like. The
+        server reads the user from the token, so the request carries no body.
       operationId: likeProduct
       parameters:
         - $ref: '#/components/parameters/ProductId'
@@ -711,8 +712,8 @@ paths:
       description: |
         The server removes the like of this user for this product.
 
-        The operation is idempotent. The server answers 204 whether or not a like was
-        there to remove. A product that does not exist still returns 404.
+        The operation is idempotent. The server answers 204 even if the user did not like
+        the product. A product that does not exist still returns 404.
       operationId: unlikeProduct
       parameters:
         - $ref: '#/components/parameters/ProductId'
@@ -800,8 +801,8 @@ paths:
 
         Send the image file. The server stores the file and returns the new image.
 
-        Set `isPrimary` to make this the card image. The server clears the flag on the
-        image that held it, because a product has one primary image.
+        Set `isPrimary` to true to make this the card image. The server clears the flag
+        on the image that held it, because a product has one primary image.
 
         A file that is not an image returns 415. A file above the size limit returns
         413.
@@ -861,8 +862,8 @@ paths:
 
         The server removes the image from the product and from storage.
 
-        Removing the primary image leaves the product with no card image until a manager
-        marks another one.
+        If a manager removes the primary image, the product has no card image until the
+        manager marks another image as primary.
       operationId: deleteProductImage
       parameters:
         - $ref: '#/components/parameters/ImageId'
@@ -885,11 +886,11 @@ paths:
       description: |
         Only a manager may use this operation.
 
-        Send the size, the colour, the price and the stock. The server creates one
+        Send the size, the color, the price and the stock. The server creates one
         variant of this product.
 
-        A size and colour pair this product already has returns 409. The pair is what a
-        buyer chooses, so two variants that share it cannot be told apart.
+        A size and color pair that this product already has returns 409. A buyer chooses
+        that pair, so two variants that share it look the same to a buyer.
 
         A stock below zero returns 422.
       operationId: createVariant
@@ -1032,11 +1033,11 @@ paths:
       description: |
         Only a manager may use this operation.
 
-        Send the number of units on hand. The value is absolute and it is not a change
-        to apply.
+        Send the number of units on hand. The value is absolute. The server does not add
+        the value to the current stock.
 
-        This value has a second writer. The payment webhook lowers it when an order is
-        paid. The stock is on its own path so that both writers are easy to find.
+        This value has a second writer. The payment webhook lowers it after a buyer pays
+        for an order. The stock has its own path, so a developer can find both writers.
 
         A value below zero returns 422.
       operationId: setVariantStock
@@ -1085,8 +1086,9 @@ paths:
         A user who never added anything receives an empty cart and not a 404. The cart
         exists because the user exists.
 
-        The cart holds no price of its own. Each line reads the price of its variant now,
-        so a price change by a manager reaches a cart that is already filled.
+        The cart holds no price of its own. Each line reads the price of its variant now.
+        A manager who changes a price also changes the `subtotal` of a cart that already
+        holds that variant.
       operationId: getCart
       responses:
         '200':
@@ -1199,11 +1201,11 @@ paths:
       tags: [orders]
       summary: Create an order from the cart
       description: |
-        The server turns the cart of this user into an order and empties the cart.
+        The server creates an order from the cart of this user and empties the cart.
 
         The order starts in `pending`. The server does not lower any stock here. The
-        stock falls when the payment webhook reports success, so an order that is never
-        paid holds nothing back.
+        stock falls when the payment webhook reports success, so an unpaid order
+        reserves no stock.
 
         Each line copies the price of its variant into the order. An order is a fixed
         record and a cart is a live view, so a later price change does not reach an
@@ -1355,14 +1357,14 @@ paths:
         A client may send `cancelled`, and only while the order is `pending`, `paid` or
         `processing`. A manager may send `processing`, `shipped` or `cancelled`.
 
-        No caller may send `paid`. The payment webhook sets that status, because payment
-        is confirmed by Stripe and not by a request.
+        No caller may send `paid`. The payment webhook sets that status, because Stripe
+        confirms the payment and a request does not.
 
         No caller may send `delivered`. That status belongs to the optional delivery
-        feature, which this contract leaves out of scope.
+        feature, which this contract does not cover.
 
-        A move the current status does not allow returns 409. A cancel after the order
-        ships returns 409 with the `order-not-cancellable` problem type.
+        A move that the current status does not allow returns 409. A cancel after the
+        order ships returns 409 with the `order-not-cancellable` problem type.
       operationId: setOrderStatus
       parameters:
         - $ref: '#/components/parameters/OrderId'
@@ -1378,8 +1380,8 @@ paths:
                   type: string
                   enum: [processing, shipped, cancelled]
                   description: The status to move to. The set is narrower than
-                    `OrderStatus`, because `pending` is the start, `paid` is set by the
-                    webhook, and `delivered` is out of scope.
+                    `OrderStatus`, because `pending` is the start, the webhook sets
+                    `paid`, and `delivered` is out of scope.
                   example: processing
       responses:
         '200':
@@ -1409,9 +1411,9 @@ paths:
         The server creates an order for one variant and returns a Stripe payment link.
         This is the flow that buys a single product without the cart.
 
-        The order belongs to the caller. `orders.user_id` cannot be null, so an
-        anonymous purchase has nowhere to be recorded. The link is shareable in the sense
-        that another person can pay it, and the order still belongs to the caller.
+        The order belongs to the caller. `orders.user_id` cannot be null, so the server
+        cannot record an anonymous purchase. Another person can pay the link, but the
+        order still belongs to the caller.
 
         The order starts in `pending`. The stock falls when the
         `checkout.session.completed` event arrives, and not here.
@@ -1584,8 +1586,8 @@ components:
     # application/json.
 
     # The closed set of problem kinds this API emits. A client branches on this value and
-    # on nothing else. Only failures the status code cannot tell apart get a member here;
-    # everything else omits `type`, which RFC 9457 defines as `about:blank`, meaning no
+    # on nothing else. Only failures the status code cannot tell apart get a member here.
+    # Everything else omits `type`, which RFC 9457 defines as `about:blank`, meaning no
     # semantics beyond the status code.
     #
     # These URIs are identifiers first. RFC 9457 says consumers SHOULD NOT dereference them
@@ -1606,19 +1608,20 @@ components:
 
     Problem:
       type: object
-      # `type` is deliberately NOT required. It is drawn from a closed enum that names only
-      # the failures a status code cannot tell apart, so a 404 or a 429 carries no member.
-      # RFC 9457: an absent `type` means `about:blank`, the status code is the whole story.
+      # `type` is deliberately NOT required. The enum above names only the failures a
+      # status code cannot tell apart, so a 404 or a 429 carries no member. RFC 9457
+      # reads an absent `type` as `about:blank`.
       required: [title, status]
       properties:
         type:
+          # `allOf` wraps the `$ref` because OpenAPI 3.0.3 ignores any sibling of a bare
+          # `$ref`.
           allOf:
             - $ref: '#/components/schemas/ProblemType'
           description: >
-            Identifies the problem kind. Two requests that failed for the same reason
-            carry the same value. Absent means `about:blank`: the status code is the
-            whole story. Wrapped in `allOf` because OpenAPI 3.0.3 ignores any sibling of
-            a bare `$ref`.
+            This member identifies the problem kind. Two requests that failed for the
+            same reason carry the same value. An absent member means `about:blank`, so
+            the status code is the whole story.
         title:
           type: string
           description: A short summary of the problem kind. It does not change between
@@ -1630,16 +1633,16 @@ components:
           example: 409
         detail:
           type: string
-          description: What went wrong in this specific occurrence.
+          description: An explanation of this specific occurrence.
           example: An account with this email already exists.
         instance:
           type: string
           format: uri
-          description: Identifies this occurrence.
+          description: A URI reference that identifies this occurrence.
         errors:
           type: array
-          description: Extension member. Present only on a 400 from request validation.
-            One entry per rejected field.
+          description: An extension member. The server sends it only on a 400 from
+            request validation. It carries one entry per rejected field.
           items:
             type: object
             required: [field, message]
@@ -1665,7 +1668,7 @@ components:
         refreshToken:
           type: string
           description: It is valid for 7 days. It rotates on every use. Keep the new
-            value and discard the old one.
+            value. Discard the old value.
           example: 8f14e45fceea167a5a36dedd4bea2543f8b3c9e1d0a7b264
 
     # ---- Pagination, DECISIONS.md item 3 ------------------------------------
@@ -1676,18 +1679,20 @@ components:
       properties:
         total:
           type: integer
-          description: Rows matching the filter, before limit and offset apply.
+          description: The number of rows that match the filter, before limit and offset
+            apply.
           example: 347
         limit:
           type: integer
-          description: Rows in this page. The default is 20 and the maximum is 100.
+          description: The number of rows in this page. The default is 20 and the
+            maximum is 100.
           default: 20
           maximum: 100
           example: 20
         offset:
           type: integer
-          description: Rows skipped. Offset pagination drifts if rows are inserted
-            during a scan.
+          description: The number of rows the server skipped. Offset pagination drifts
+            if another request inserts rows during a scan.
           default: 0
           example: 40
 
@@ -1736,19 +1741,20 @@ components:
           type: string
           example: Ringspun cotton tee
         priceFrom:
+          # `allOf` wraps the `$ref` because OpenAPI 3.0.3 ignores any sibling of a bare
+          # `$ref`.
           allOf:
             - $ref: '#/components/schemas/Money'
-          description: The lowest price among the variants of this product. Wrapped in
-            `allOf` because OpenAPI 3.0.3 ignores any sibling of a bare `$ref`.
+          description: The lowest price among the variants of this product.
         primaryImageUrl:
           type: string
-          description: The image marked primary. It is absent when the product has no
-            image.
+          description: The primary image of the product. It is absent when the product
+            has no image.
           example: https://cdn.tshirt.store/products/12/front.jpg
         isActive:
           type: boolean
-          description: A disabled product carries false. Only a manager sees one in a
-            list.
+          description: A disabled product carries false. Only a manager sees a disabled
+            product in a list.
           example: true
         createdAt:
           type: string
@@ -1806,7 +1812,7 @@ components:
         stock:
           type: integer
           description: The units on hand. Feature 8 mails the users who like a product
-            when this value reaches 3, so the number is not treated as secret.
+            when this value reaches 3. This API does not treat the number as a secret.
           minimum: 0
           example: 7
 
@@ -1838,7 +1844,7 @@ components:
     # ---- Cart ---------------------------------------------------------------
     # `shopping_cart_items` carries no price column, so a line reads the price of its
     # variant at request time. A cart is therefore a live view and not a quote. The
-    # order is where a price is fixed.
+    # order fixes the price.
     Cart:
       type: object
       required: [items, subtotal]
@@ -1893,15 +1899,15 @@ components:
           type: integer
           minimum: 0
           description: The units on hand for this variant now. It can fall below the
-            quantity after the line was added, and the checkout then fails.
+            quantity after the user added the line. The checkout then fails.
           example: 7
 
     # ---- Orders -------------------------------------------------------------
     # `subtotal` and `total` are equal in this contract, because promo codes are
     # Optional Feature 13 and out of scope. Both fields ship anyway. The ERD already
-    # carries `subtotal_amount` and `total_amount`, and the week's own table names
-    # adding an optional field as the one genuinely safe change, so shipping the pair
-    # now makes promo support additive later instead of a break.
+    # carries `subtotal_amount` and `total_amount`. The week's own table lists an added
+    # optional field as the one genuinely safe change, so shipping the pair now makes
+    # promo support additive later, not a break.
     OrderSummary:
       type: object
       required: [id, status, subtotal, total, itemCount, createdAt]
@@ -1918,7 +1924,7 @@ components:
         total:
           allOf:
             - $ref: '#/components/schemas/Money'
-          description: The amount charged.
+          description: The amount the store charges.
         itemCount:
           type: integer
           description: The number of units in the order, across every line.
@@ -1944,7 +1950,7 @@ components:
         total:
           allOf:
             - $ref: '#/components/schemas/Money'
-          description: The amount charged.
+          description: The amount the store charges.
         items:
           type: array
           items:
@@ -1952,7 +1958,8 @@ components:
         paymentMethod:
           allOf:
             - $ref: '#/components/schemas/PaymentMethod'
-          description: How the order was paid. It is absent until a payment succeeds.
+          description: The Stripe flow that paid this order. It is absent until a
+            payment succeeds.
         createdAt:
           type: string
           format: date-time
@@ -1975,7 +1982,7 @@ components:
           example: 12
         productName:
           type: string
-          description: The name of the product when the order was placed.
+          description: The name of the product when the client placed the order.
           example: Ringspun cotton tee
         size:
           type: string
@@ -1986,8 +1993,8 @@ components:
         unitPrice:
           allOf:
             - $ref: '#/components/schemas/Money'
-          description: The price of the variant when the order was placed. It does not
-            follow a later price change.
+          description: The price of the variant when the client placed the order. It
+            does not follow a later price change.
         quantity:
           type: integer
           minimum: 1
@@ -2018,7 +2025,8 @@ components:
           example: 502
         url:
           type: string
-          description: The Stripe page that takes the payment. Send a person here.
+          description: The Stripe page that takes the payment. Send the buyer to this
+            page.
           example: https://checkout.stripe.com/c/pay/cs_test_a1b2c3
         expiresAt:
           type: string
@@ -2036,7 +2044,7 @@ components:
         clientSecret:
           type: string
           description: Stripe.js completes the payment with this value. It is not a
-            server credential and it identifies one payment attempt.
+            server credential. It identifies one payment attempt.
           example: pi_3P000000000000_secret_a1b2c3
         amount:
           allOf:
@@ -2059,15 +2067,15 @@ components:
       example: 1999
 
     # ---- Enums --------------------------------------------------------------
-    # `delivered` and DELIVERY_PERSON belong to the Optional Features. The
+    # `delivered` and `delivery_person` belong to the Optional Features. The
     # operations that use them are out of scope for this contract. The values stay
     # so the contract and the Week 1 ERD describe the same domain.
     OrderStatus:
       type: string
       enum: [pending, paid, processing, shipped, delivered, cancelled]
     # Lower case to match OrderStatus above. The document had two enums in two
-    # conventions, and OrderStatus is the one that reproduces the ERD's `order_status`
-    # exactly, so it is the one that wins.
+    # conventions. OrderStatus reproduces the ERD's `order_status` exactly, so
+    # OrderStatus wins.
     #
     # This still does not match the ERD, which stores roles as rows in `user_role` with
     # `name varchar // Manager, Client, Delivery`. Two gaps remain and both belong to the
@@ -2080,7 +2088,7 @@ components:
   # ---- Query parameters, DECISIONS.md item 3 ------------------------------
   # Every collection takes this pair. The bounds repeat PageMeta, so a caller reads the
   # same numbers on the request side and on the response side. A collection that does
-  # not reference both of these is a collection that returns an unbounded array.
+  # not reference both returns an unbounded array.
   parameters:
 
     Limit:
@@ -2216,15 +2224,16 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
     Forbidden:
-      description: Authenticated, and not allowed to perform this action. The endpoint
-        is forbidden whichever resource is named, so refusing it leaks nothing.
+      description: The caller is authenticated, but may not perform this action. The
+        endpoint is forbidden whichever resource the caller names, so the refusal leaks
+        nothing.
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
     NotFound:
-      description: No such resource, or one this caller may not know exists. Answering
-        403 here would confirm the row exists, so ownership failures return 404.
+      description: The resource does not exist, or this caller may not know that it
+        exists. A 403 would confirm the row exists, so an ownership failure returns 404.
       content:
         application/problem+json:
           schema:
@@ -2237,8 +2246,8 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
     UnprocessableEntity:
-      description: Well formed, and invalid whatever the state. The same request cannot
-        succeed later.
+      description: The request is well formed, and invalid whatever the state. The same
+        request cannot succeed later.
       content:
         application/problem+json:
           schema:
@@ -2260,7 +2269,7 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
     TooManyRequests:
-      description: Rate limit reached.
+      description: The caller reached the rate limit.
       content:
         application/problem+json:
           schema:
