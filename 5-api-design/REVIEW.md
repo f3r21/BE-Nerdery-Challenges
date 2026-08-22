@@ -80,28 +80,28 @@ outright and eleven were downgraded, and those do not appear below.
 
 | # | Tag | Finding | Verdict | Reasoning | Commit |
 | --- | --- | --- | --- | --- | --- |
-| R2-1 | `[CONVENTION]` | `POST /auth/sessions` answers 201 and sends no `Location` header, and `grep -cin location openapi.yaml` returns 0. Two assigned readings ask for the header: HTTP Methods says SHOULD, and HTTP Status Codes states it with no normative keyword at all. **The rule is weaker than it first looks:** RFC 9110 15.3.2 says the created resource is identified "by either a Location header field in the response or, if no Location header field is received, by the target URI", so omitting it is permitted. The defect here is that the fallback does not work: the target URI is the collection `/auth/sessions`, so a client that signs in cannot learn which row it just created. | | | |
-| R2-2 | `[SPEC]` | `GET /auth/sessions` returns a `{data, meta}` envelope whose `PageMeta.limit` and `PageMeta.offset` are both required, and the operation declares no `parameters` at all. `grep -n "in: query"` returns nothing across the whole document. The envelope promises pagination no caller can perform, and item 3 commits to both parameters "without exception". | | | |
-| R2-3 | `[SPEC]` | `PageMeta.limit` carries `default: 20` and `maximum: 100`, and `PageMeta.offset` carries `default: 0`, on a response-only schema where both fields are required. A default on a required response property is unreachable by construction, and the maximum constrains the server's own output rather than the caller's request. | | | |
-| R2-4 | `[CONVENTION]` | `Problem` carries property-level examples drawn from a single 409 email-taken occurrence, and `Problem` is referenced by all eight error responses. Swagger UI and Redoc synthesise the body sample from those keywords, so the rendered 401 on sign-in displays `status: 409` with an email-conflict title. | | | |
-| R2-5 | `[CONVENTION]` | No 2xx response in the document carries an example. All eleven `example:` keywords sit on request properties or on `Problem`. `SessionTokens` and `Session` are the two schemas a frontend consumes and both render as empty strings in a mock server. The week's own consumer checklist names examples explicitly. | | | |
-| R2-6 | `[CONVENTION]` | Feature 6 marks CASL a MUST and the contract expresses authorization nowhere. `Forbidden` and `Role` are each referenced zero times, no operation description names a role, and no operation declares a 403. The 403-versus-404 split is settled in item 7 and appears in no part of the document a consumer reads. | | | |
-| R2-7 | `[SPEC]` | Item 8 defines rotation as deleting the presented refresh row and issuing a new one. `Session.id` is that row's id. So the identifier `GET /auth/sessions` hands the client, and the one `DELETE /auth/sessions/{id}` targets, is destroyed roughly every fifteen minutes by ordinary use. Neither document states whether the id survives, so the contract is silent where it must not be. | | | |
-| R2-8 | `[SPEC]` | No operation declares 500, although item 7 promises it for every uncaught failure. `InternalServerError` is consequently an unused component that both linters warn about. | | | |
-| R2-9 | `[CONVENTION]` | No request property anywhere carries `minLength`, `maxLength`, `pattern` or `minimum`, while `BadRequest` promises that `errors` names each rejected field. The 400 fires on validation rules the document never states, and there is no password policy in the ledger to state them from. | | | |
-| R2-10 | `[SPEC]` | Nothing in the ledger decides null against absent. `grep -ci nullable DECISIONS.md` returns 0 across 616 lines, while the YAML header names nullability as the reason for pinning 3.0.3. `deviceName` is bare `type: string` against an ERD column declared `[null]`. | | | |
-| R2-11 | `[TASTE]` | Enum value casing is inconsistent three lines apart: `OrderStatus` is lowercase and `Role` is SCREAMING_SNAKE. Item 4 governs field names and says nothing about enum values. | | | |
-| R2-12 | `[CONVENTION]` | The `Unauthorized` response lists three causes and omits a rejected email or password, yet it is the 401 on `POST /auth/sessions`, where credentials are the only route to a 401. Item 8 already generalises the member to "credentials rejected", so the component is narrower than the decision it implements. | | | |
-| R2-13 | `[CONVENTION]` | `TooManyRequests` declares no `Retry-After` header. The reset-password rate limit is a named Mandatory Implementation, and this is the only part of it a contract can carry. | | | |
-| R2-14 | `[SPEC]` | The YAML header gives the Spectral command without `--ruleset`. Run verbatim it exits with "No ruleset has been found", which this directory's own README predicts and calls misleading. | | | |
-| R2-15 | `[SPEC]` | The YAML header and the README both claim "0 errors, three warnings". Measured 2026-08-20 at 390 lines: Redocly gives 0 errors and **10** warnings, Spectral gives 0 errors and **11** warnings, and neither produces the named trio. `info-license` does not appear in the Spectral run at all. The figure was true at 251 lines. | | | |
-| R2-16 | `[CONVENTION]` | `listSessions` and `refreshSession` carry a summary and no description. They are the two operations with the most unstated behaviour: the refresh one hides that a replayed token deletes every session for that user, which is the only thing that makes `refresh-token-unknown` legible to a client. | | | |
-| R2-17 | `[TASTE]` | Item 6 applies the money rule "without exception" to `discountAmount` and `minPurchaseAmount`. Both are Optional Feature 13 fields that this contract puts out of scope. | | | |
-| R2-18 | `[SPEC]` | The id-exposure settlement in the deferred section has no "Gave up" line, and line 9 of the same file states that a decision without one is not a decision. It gave up enumerability, and the option to move to opaque ids without a contract break. | | | |
-| R2-19 | `[CONVENTION]` | Item 4's load-bearing evidence is that `user_auth_data` becomes `users`, and the tense says the rename has already landed. It has not: `challenge/erd` at `8d47aae` still reads `user_auth_data`. The rename belongs to the next ERD pass, so the tense is wrong rather than the argument. | | | |
-| R2-20 | `[TASTE]` | The header summary says "Items 2, 8 and 9 depend on each other", which was written when the file had nine items. Item 10 now names items 1, 4 and 8. | | | |
-| R2-21 | `[CONVENTION]` | The scope decision is not recorded as a decision. Cutting Optional Features 11 to 13 exists only as a two-line YAML comment. It has a real cost and no Chose / Gave up / Why entry, and the operation count it implies appears nowhere a mentor can read. | | | |
-| R2-22 | `[SPEC]` | Feature 8, the stock notification system, correctly has no endpoint and also has no mention. A reviewer reading only this document cannot tell whether it was covered or forgotten. | | | |
+| R2-1 | `[CONVENTION]` | `POST /auth/sessions` answers 201 and sends no `Location` header, and `grep -cin location openapi.yaml` returns 0. Two assigned readings ask for the header: HTTP Methods says SHOULD, and HTTP Status Codes states it with no normative keyword at all. **The rule is weaker than it first looks:** RFC 9110 15.3.2 says the created resource is identified "by either a Location header field in the response or, if no Location header field is received, by the target URI", so omitting it is permitted. The defect here is that the fallback does not work: the target URI is the collection `/auth/sessions`, so a client that signs in cannot learn which row it just created. | Open | The narrowed finding stands. Six other creates now send `Location`, so sessions is the lone exception and needs a written reason rather than a fix. Carried to round 3. |  |
+| R2-2 | `[SPEC]` | `GET /auth/sessions` returns a `{data, meta}` envelope whose `PageMeta.limit` and `PageMeta.offset` are both required, and the operation declares no `parameters` at all. `grep -n "in: query"` returns nothing across the whole document. The envelope promises pagination no caller can perform, and item 3 commits to both parameters "without exception". | Applied | `components/parameters` now declares `Limit` and `Offset`, referenced by all six collections. `grep -c "in: query"` returns 9. | `25d9595` |
+| R2-3 | `[SPEC]` | `PageMeta.limit` carries `default: 20` and `maximum: 100`, and `PageMeta.offset` carries `default: 0`, on a response-only schema where both fields are required. A default on a required response property is unreachable by construction, and the maximum constrains the server's own output rather than the caller's request. | Open | `PageMeta` still carries `default` and `maximum` on required response fields. The `maximum` documents a real server invariant, so only the `default` is clearly wrong. Carried to round 3. |  |
+| R2-4 | `[CONVENTION]` | `Problem` carries property-level examples drawn from a single 409 email-taken occurrence, and `Problem` is referenced by all eight error responses. Swagger UI and Redoc synthesise the body sample from those keywords, so the rendered 401 on sign-in displays `status: 409` with an email-conflict title. | Open | `Problem` still carries examples drawn from one 409, and it is now referenced by ten error responses rather than eight. Carried to round 3. |  |
+| R2-5 | `[CONVENTION]` | No 2xx response in the document carries an example. All eleven `example:` keywords sit on request properties or on `Problem`. `SessionTokens` and `Session` are the two schemas a frontend consumes and both render as empty strings in a mock server. The week's own consumer checklist names examples explicitly. | Applied | `Session` and `SessionTokens` carry examples, and every schema written after them does too. | `65376be` |
+| R2-6 | `[CONVENTION]` | Feature 6 marks CASL a MUST and the contract expresses authorization nowhere. `Forbidden` and `Role` are each referenced zero times, no operation description names a role, and no operation declares a 403. The 403-versus-404 split is settled in item 7 and appears in no part of the document a consumer reads. | Applied | Twelve operations declare 403 and ten descriptions carry "Only a manager may use this operation." `Forbidden` and `Role` are both referenced. | `0d75487` |
+| R2-7 | `[SPEC]` | Item 8 defines rotation as deleting the presented refresh row and issuing a new one. `Session.id` is that row's id. So the identifier `GET /auth/sessions` hands the client, and the one `DELETE /auth/sessions/{id}` targets, is destroyed roughly every fifteen minutes by ordinary use. Neither document states whether the id survives, so the contract is silent where it must not be. | Open | Still true, and it is an ERD question rather than a contract one: whether the refresh row keeps its id across rotation. Carried to round 3. |  |
+| R2-8 | `[SPEC]` | No operation declares 500, although item 7 promises it for every uncaught failure. `InternalServerError` is consequently an unused component that both linters warn about. | Applied | `grep -c "'500':"` returns 36, one per operation, per item 7's floor. | `65376be` |
+| R2-9 | `[CONVENTION]` | No request property anywhere carries `minLength`, `maxLength`, `pattern` or `minimum`, while `BadRequest` promises that `errors` names each rejected field. The 400 fires on validation rules the document never states, and there is no password policy in the ledger to state them from. | Applied | Every request property now carries the rule its 400 fires on. `email` is bounded at 254 from RFC 5321 4.5.3.1.3. | `65376be` |
+| R2-10 | `[SPEC]` | Nothing in the ledger decides null against absent. `grep -ci nullable DECISIONS.md` returns 0 across 616 lines, while the YAML header names nullability as the reason for pinning 3.0.3. `deviceName` is bare `type: string` against an ERD column declared `[null]`. | Open | No decision on null against absent exists, and no field declares `nullable`. Real, and it needs a ledger entry rather than a contract change. Carried to round 3. |  |
+| R2-11 | `[TASTE]` | Enum value casing is inconsistent three lines apart: `OrderStatus` is lowercase and `Role` is SCREAMING_SNAKE. Item 4 governs field names and says nothing about enum values. | Applied | `Role` lowered to match `OrderStatus`, which is the enum that reproduces the ERD exactly. | `65376be` |
+| R2-12 | `[CONVENTION]` | The `Unauthorized` response lists three causes and omits a rejected email or password, yet it is the 401 on `POST /auth/sessions`, where credentials are the only route to a 401. Item 8 already generalises the member to "credentials rejected", so the component is narrower than the decision it implements. | **Rejected** | The shared response describes the shape, not the cause. `ProblemType` carries `invalid-credentials` and `createSession`'s own description names it, so enumerating every caller's cause in the shared component would couple it to every operation that references it. |  |
+| R2-13 | `[CONVENTION]` | `TooManyRequests` declares no `Retry-After` header. The reset-password rate limit is a named Mandatory Implementation, and this is the only part of it a contract can carry. | Open | `TooManyRequests` still declares no `Retry-After`, and there are now three 429s. Carried to round 3. |  |
+| R2-14 | `[SPEC]` | The YAML header gives the Spectral command without `--ruleset`. Run verbatim it exits with "No ruleset has been found", which this directory's own README predicts and calls misleading. | Applied | The header command now carries `--ruleset`, matching README.md. | `25d9595` |
+| R2-15 | `[SPEC]` | The YAML header and the README both claim "0 errors, three warnings". Measured 2026-08-20 at 390 lines: Redocly gives 0 errors and **10** warnings, Spectral gives 0 errors and **11** warnings, and neither produces the named trio. `info-license` does not appear in the Spectral run at all. The figure was true at 251 lines. | Applied | Corrected, then re-measured at 36 operations: Redocly 0 errors and 2 warnings, Spectral 0 errors and 1. | `25d9595`, `bf22922` |
+| R2-16 | `[CONVENTION]` | `listSessions` and `refreshSession` carry a summary and no description. They are the two operations with the most unstated behaviour: the refresh one hides that a replayed token deletes every session for that user, which is the only thing that makes `refresh-token-unknown` legible to a client. | Applied | Both operations carry descriptions. `refreshSession` now states that a replayed token deletes every refresh row, per item 8. | `25d9595` |
+| R2-17 | `[TASTE]` | Item 6 applies the money rule "without exception" to `discountAmount` and `minPurchaseAmount`. Both are Optional Feature 13 fields that this contract puts out of scope. | Applied | `discountAmount` and `minPurchaseAmount` removed from item 6's list, and `priceAtPurchase` corrected to `unitPrice`. All three appear zero times in the contract. | `676e5ff` |
+| R2-18 | `[SPEC]` | The id-exposure settlement in the deferred section has no "Gave up" line, and line 9 of the same file states that a decision without one is not a decision. It gave up enumerability, and the option to move to opaque ids without a contract break. | Applied | Id exposure now carries a Gave up line. The real cost is that 36 operations depend on integer ids, so reversing it changes a field type everywhere at once. | `5c045c7` |
+| R2-19 | `[CONVENTION]` | Item 4's load-bearing evidence is that `user_auth_data` becomes `users`, and the tense says the rename has already landed. It has not: `challenge/erd` at `8d47aae` still reads `user_auth_data`. The rename belongs to the next ERD pass, so the tense is wrong rather than the argument. | Applied | The tense is corrected and the working-day narration removed. `challenge/erd` at `8d47aae` still reads `user_auth_data`, which is the point rather than an excuse. | `5c045c7`, `6d2e823` |
+| R2-20 | `[TASTE]` | The header summary says "Items 2, 8 and 9 depend on each other", which was written when the file had nine items. Item 10 now names items 1, 4 and 8. | Applied | The dependency paragraph now names both chains, including item 10 on items 1, 4 and 8. | `5c045c7` |
+| R2-21 | `[CONVENTION]` | The scope decision is not recorded as a decision. Cutting Optional Features 11 to 13 exists only as a two-line YAML comment. It has a real cost and no Chose / Gave up / Why entry, and the operation count it implies appears nowhere a mentor can read. | Applied | The scope decision is recorded, with the 36 against 39 table and all three differences traced to decisions in the file. | `5c045c7` |
+| R2-22 | `[SPEC]` | Feature 8, the stock notification system, correctly has no endpoint and also has no mention. A reviewer reading only this document cannot tell whether it was covered or forgotten. | Applied | Feature 8 is named on `ProductVariant.stock`, so a reader can tell it was covered rather than forgotten. | `99d4d9f` |
 
 ### The hole
 
@@ -142,8 +142,23 @@ the next ERD pass. The contract needs one sentence in item 8 saying which, and a
 
 ### What I rejected, and why
 
-*(To fill in as the ledger above is decided. At least one rejection is required by the week's
-own bar, and R2-11, R2-17 and R2-20 are the likeliest candidates.)*
+**R2-12, and it is the only rejection in this round.** The finding says the `Unauthorized`
+response lists three causes and omits a rejected email or password, while it is the declared
+401 on the operation where credentials are the only route to one.
+
+The observation is correct and the conclusion does not follow. A shared response component
+describes the **shape** a client parses, not the cause of any particular failure. The cause
+travels in `Problem.type`, which is a closed enum, and `invalid-credentials` is a member of it.
+`createSession`'s own description already names it. Making the shared component enumerate every
+caller's cause would couple one component to all twenty operations that reference it, and every
+new 401 would edit it again.
+
+The three candidates named when this section was drafted were all applied instead, which is
+worth recording. R2-11 and R2-20 were cheap and correct. R2-17 looked like taste and turned out
+to be a factual error: item 6 applied the money rule to `discountAmount` and `minPurchaseAmount`,
+and both appear zero times in the contract because Optional Feature 13 is cut. A finding filed
+under `[TASTE]` was really a `[SPEC]` one, which is a lesson about the tags rather than about
+that row.
 
 ### Refuted before reaching this ledger
 
@@ -156,8 +171,50 @@ own bar, and R2-11, R2-17 and R2-20 are the likeliest candidates.)*
 - **"Modules 1 to 3 are unstarted graded work."** Refuted. `NodeJS.md` declares those topics
   assumed knowledge that will not be covered, and routes them to optional pre-work.
 
-### Round 3
+## Round 3, 2026-08-21
 
-A last pass over the authored operations, started cold rather than continued from the
-writing. The eight components at zero references are the checklist: anything still
-unreferenced when authoring stops is an operation that was skipped.
+**Scope.** All 36 operations, after authoring stopped. Two lenses this time: the fifteen
+obligations the week's own readings place on an operation, and the brief's Minimum Required
+Features 1 to 10 walked bullet by bullet.
+
+**How it differs from the plan.** This round was written up after authoring rather than run as
+one cold pass, because most of it was collected while the operations were being written. That
+is a weaker guarantee than rounds 1 and 2 and it is recorded rather than glossed: a pass that
+watched the code being written knows where the bodies are, and also shares its assumptions.
+The feature-coverage half below was run cold and found the two blockers, which is the argument
+for keeping the cold pass.
+
+**The checklist that closed.** The eight components at zero references were the coverage probe.
+All eight are now referenced, so no feature was left with a component and no operation.
+
+### Ledger
+
+| # | Tag | Finding | Verdict | Reasoning | Commit |
+| --- | --- | --- | --- | --- | --- |
+| R3-1 | `[SPEC]` | `openapi.yaml:356` states "A manager assigns any other role" and no operation accepts a role. Zero request bodies mention one, so the ten manager-only operations are reachable only by seeding the database. | Open | A real gap and a design decision: either add the operation or delete the sentence that promises it. | |
+| R3-2 | `[SPEC]` | Feature 4 requires "Show client orders". Neither `Order` nor `OrderSummary` carries a customer identifier and `listAllOrders` declares no user filter, so a manager reading every order cannot tell whose any of them is. | Open | The only Minimum Required Feature that is partially covered. | |
+| R3-3 | `[SPEC]` | `listProducts` and `getProduct` declare `security: []` while also declaring 401, 403 and an `includeInactive` parameter only a manager may set. In 3.0.3 an empty array removes every scheme, so the contract offers no way to authenticate on an operation it says may refuse you for not authenticating. | Open | The correct spelling for optional authentication is `security: [{}, {bearerAuth: []}]`. | |
+| R3-4 | `[SPEC]` | `DECISIONS.md` item 7's floor sends "referencing a variant that does not exist" to 422. Every operation that can do that answers 404. | Open | The contract is consistent across all ten sites and the ledger row is the outlier, so the row is what changes. | |
+| R3-5 | `[CONVENTION]` | `createVariant` and `setVariantStock` say a stock below zero returns 422, and both request schemas declare `minimum: 0`, which makes it a schema validation failure. Item 7 routes those to 400. | Open | Two rows of one table answer the same input differently. | |
+| R3-6 | `[CONVENTION]` | Three paginated collections declared no 400 although they take the same bounded `limit` and `offset` as the three that did. | Applied | Every collection that references `Limit` or `Offset` now declares 400. Found by enumerating them rather than by trusting the linter, which flagged only the one collection that had no 4xx at all. | `cde5392` |
+| R3-7 | `[CONVENTION]` | Item 6 named `minPrice`, `maxPrice`, `sortBy`, `discountAmount`, `minPurchaseAmount` and `priceAtPurchase`. None exists in the contract. A later sweep found `priceFrom` and `amount` missing from the same list. | Applied | Corrected twice. The entry now says to re-derive the list from the `Money` references rather than trust the prose, because this list has gone stale twice. | `676e5ff`, `cde5392` |
+| R3-8 | `[SPEC]` | Item 5 pinned the range semantics on `from` and `to`. The parameters are `createdFrom` and `createdTo`, renamed when order history was authored. | Applied | The rule was right and the names went stale the same day. | `676e5ff` |
+| R3-9 | `[TASTE]` | `[SPEC]` is defined as "required or forbidden by OpenAPI 3.0.3", and eight of the nine round 2 `[SPEC]` findings are not about OpenAPI 3.0.3. | Open | The tag definition is wrong rather than the findings. It should say "required by a named standard", which is what the rows actually assert. | |
+| R3-10 | `[CONVENTION]` | `README.md` and the YAML header cited a private note path and a reading-contradiction sheet that exist outside this repository. | Applied | Replaced with `openapi.yaml` itself and the reading URL from the week's Content table. A pointer a reviewer cannot follow is worse than none. | `6d2e823` |
+
+### The hole
+
+**R3-2, and it is not closed.** Feature 4 asks a manager to show client orders. The contract
+gives a manager every order and no way to attribute one. This is the only Minimum Required
+Feature that came back partial, and it is a schema gap rather than a missing operation:
+`orders.user_id` exists in the ERD and no response shape exposes it.
+
+It is left open deliberately. Adding a customer to an order representation is a decision about
+what a manager may see, and item 7 already argues that 404 protects a fact. That argument has
+to be made explicitly for this field rather than assumed.
+
+### What I rejected, and why
+
+Nothing in round 3. Every finding above is either a checkable contradiction between two files
+or a capability the brief names and the contract lacks. That is a narrower round than round 2,
+which is what happens when the document has already survived two passes.
