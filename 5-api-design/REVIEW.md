@@ -1,8 +1,8 @@
 # Review rounds
 
-Claude attacking the contract, and what I did about it. Three rounds, a fresh session each,
-because the session that wrote the document already believes the assumptions that produced
-the hole.
+I attack the contract myself, and record what I did about each finding. Three rounds, each
+one started cold rather than continued from the writing, because the pass that wrote the
+document already believes the assumptions that produced the hole.
 
 Every finding carries a tag. Untagged findings do not enter the ledger.
 
@@ -10,7 +10,7 @@ Every finding carries a tag. Untagged findings do not enter the ledger.
 | --- | --- | --- |
 | `[SPEC]` | Required or forbidden by OpenAPI 3.0.3 | I verify it against `spec.openapis.org/oas/v3.0.3` before accepting |
 | `[CONVENTION]` | Common practice, with a named source | I weigh it |
-| `[TASTE]` | Claude's preference | Rejectable without argument |
+| `[TASTE]` | Preference, with no source behind it | Rejectable without argument |
 
 Verdict column: `applied`, `rejected`, or `deferred` with the reason. A finding with no
 verdict has not been decided yet.
@@ -21,7 +21,8 @@ verdict has not been decided yet.
 
 **Scope.** The shared component layer and one placeholder operation, 251 lines. Deliberately
 run before the other operations are authored: a flaw in `Problem` or `PageMeta`
-propagates into every one of them, so it is cheaper to find here than on Friday.
+propagates into every one of them, so it is cheaper to find here than after every operation
+is written.
 
 **Lenses run**, from `Week 2 - REST Design + NestJS Foundations.md:264-267`: missing status
 codes and inconsistent pagination and error shapes; is it understandable, not just valid;
@@ -69,7 +70,7 @@ deferred list. Run against the Week 1 ERD at `8d47aae` and against the assigned 
 **Lenses run.** The four from `Week 2 ...md:264-267` as in round 1, plus three more:
 requirement coverage against `Challenge - T-Shirt Store API.md` features 1 to 10; the
 document against the ERD it claims to be written on; and the document against the obligations
-stated in the week's own required readings. The last of the three is what the review session
+stated in the week's own required readings. The last of the three is what the mentor review
 grades.
 
 **Findings were adversarially verified** before entering this ledger. One was refuted
@@ -79,7 +80,7 @@ outright and eleven were downgraded, and those do not appear below.
 
 | # | Tag | Finding | Verdict | Reasoning | Commit |
 | --- | --- | --- | --- | --- | --- |
-| R2-1 | `[CONVENTION]` | `POST /auth/sessions` answers 201 and sends no `Location` header, and `grep -cin location openapi.yaml` returns 0. Two assigned readings recommend the header, both at SHOULD strength. **The rule is weaker than it first looks:** RFC 9110 15.3.2 says the created resource is identified "by either a Location header field in the response or, if no Location header field is received, by the target URI", so omitting it is permitted. The defect here is that the fallback does not work: the target URI is the collection `/auth/sessions`, so a client that signs in cannot learn which row it just created. | | | |
+| R2-1 | `[CONVENTION]` | `POST /auth/sessions` answers 201 and sends no `Location` header, and `grep -cin location openapi.yaml` returns 0. Two assigned readings ask for the header: HTTP Methods says SHOULD, and HTTP Status Codes states it with no normative keyword at all. **The rule is weaker than it first looks:** RFC 9110 15.3.2 says the created resource is identified "by either a Location header field in the response or, if no Location header field is received, by the target URI", so omitting it is permitted. The defect here is that the fallback does not work: the target URI is the collection `/auth/sessions`, so a client that signs in cannot learn which row it just created. | | | |
 | R2-2 | `[SPEC]` | `GET /auth/sessions` returns a `{data, meta}` envelope whose `PageMeta.limit` and `PageMeta.offset` are both required, and the operation declares no `parameters` at all. `grep -n "in: query"` returns nothing across the whole document. The envelope promises pagination no caller can perform, and item 3 commits to both parameters "without exception". | | | |
 | R2-3 | `[SPEC]` | `PageMeta.limit` carries `default: 20` and `maximum: 100`, and `PageMeta.offset` carries `default: 0`, on a response-only schema where both fields are required. A default on a required response property is unreachable by construction, and the maximum constrains the server's own output rather than the caller's request. | | | |
 | R2-4 | `[CONVENTION]` | `Problem` carries property-level examples drawn from a single 409 email-taken occurrence, and `Problem` is referenced by all eight error responses. Swagger UI and Redoc synthesise the body sample from those keywords, so the rendered 401 on sign-in displays `status: 409` with an email-conflict title. | | | |
@@ -97,7 +98,7 @@ outright and eleven were downgraded, and those do not appear below.
 | R2-16 | `[CONVENTION]` | `listSessions` and `refreshSession` carry a summary and no description. They are the two operations with the most unstated behaviour: the refresh one hides that a replayed token deletes every session for that user, which is the only thing that makes `refresh-token-unknown` legible to a client. | | | |
 | R2-17 | `[TASTE]` | Item 6 applies the money rule "without exception" to `discountAmount` and `minPurchaseAmount`. Both are Optional Feature 13 fields that this contract puts out of scope. | | | |
 | R2-18 | `[SPEC]` | The id-exposure settlement in the deferred section has no "Gave up" line, and line 9 of the same file states that a decision without one is not a decision. It gave up enumerability, and the option to move to opaque ids without a contract break. | | | |
-| R2-19 | `[CONVENTION]` | Item 4's load-bearing evidence is that `user_auth_data` becomes `users` "on Thursday". It is Thursday evening and `challenge/erd` at `8d47aae` still reads `user_auth_data`. The rename is legitimately Saturday work, so the tense is wrong rather than the argument. | | | |
+| R2-19 | `[CONVENTION]` | Item 4's load-bearing evidence is that `user_auth_data` becomes `users`, and the tense says the rename has already landed. It has not: `challenge/erd` at `8d47aae` still reads `user_auth_data`. The rename belongs to the next ERD pass, so the tense is wrong rather than the argument. | | | |
 | R2-20 | `[TASTE]` | The header summary says "Items 2, 8 and 9 depend on each other", which was written when the file had nine items. Item 10 now names items 1, 4 and 8. | | | |
 | R2-21 | `[CONVENTION]` | The scope decision is not recorded as a decision. Cutting Optional Features 11 to 13 exists only as a two-line YAML comment. It has a real cost and no Chose / Gave up / Why entry, and the operation count it implies appears nowhere a mentor can read. | | | |
 | R2-22 | `[SPEC]` | Feature 8, the stock notification system, correctly has no endpoint and also has no mention. A reviewer reading only this document cannot tell whether it was covered or forgotten. | | | |
@@ -120,20 +121,23 @@ them. Fixing it after they exist is five edits instead of one.
 
 **R2-1 is the second fix, and the finding itself needed correcting.** The first draft of this
 ledger called the missing `Location` header "a reading assigned and ignored". That overstates
-it. Both readings say SHOULD, and RFC 9110 15.3.2 is weaker still: with no `Location` header
+it. HTTP Methods says SHOULD, HTTP Status Codes states the header with no normative keyword
+at all, and RFC 9110 15.3.2 is weaker still: with no `Location` header
 the created resource is identified "by the target URI". Omitting the header is permitted. The
 narrower fault is real: the target URI here is the collection, so nothing tells the client
 which session it just created. Item 10 argues for the noun path because a client can address
 a row, and today the operation that creates the row does not say which one.
 
 I record the correction instead of quietly rewriting it. Overstating a SHOULD into a violated
-rule is the exact fault the reading-contradiction sheet in the vault charges these readings
-with, and making the same move while auditing them would not survive being asked.
+rule is the move the readings themselves make: HTTP Methods section 2.1 says the response
+SHOULD carry a `Location` header, and its own summary table then prints that header as the
+answer for a collection POST with no hedge on it. Making the same move while auditing them
+would not survive being asked.
 
 **R2-7 is the deepest finding and it is not closed in this document.** It is an ERD question:
 either the refresh row keeps its `id` and `created_at` across rotation and only `token_hash`
 and `expires_at` change, or session identity is separated from the token row. That lands in
-Saturday's ERD pass. The contract needs one sentence in item 8 saying which, and a note on
+the next ERD pass. The contract needs one sentence in item 8 saying which, and a note on
 `Session.createdAt` saying whether it means first sign-in or last rotation.
 
 ### What I rejected, and why
@@ -154,6 +158,6 @@ own bar, and R2-11, R2-17 and R2-20 are the likeliest candidates.)*
 
 ### Round 3
 
-Friday afternoon, fresh session, against the authored operations. The eight components at
-zero references are the checklist: anything still unreferenced when authoring stops is an
-operation that was skipped.
+A last pass over the authored operations, started cold rather than continued from the
+writing. The eight components at zero references are the checklist: anything still
+unreferenced when authoring stops is an operation that was skipped.

@@ -1,4 +1,4 @@
-# The contract (paths, schemas, status codes, error shape) is authored by hand against
+# The contract (paths, schemas, status codes, error shape) is written against
 # DECISIONS.md. Run both linters from the repository root before every commit:
 #
 #   npx --yes @redocly/cli@latest lint 5-api-design/openapi.yaml
@@ -2083,7 +2083,7 @@ components:
     #
     # This still does not match the ERD, which stores roles as rows in `user_role` with
     # `name varchar // Manager, Client, Delivery`. Two gaps remain and both belong to the
-    # Saturday ERD pass: the schema leaves open a set this contract closes, and it spells
+    # next ERD pass: the schema leaves open a set this contract closes, and it spells
     # the third role `Delivery` where the brief says Delivery Person.
     Role:
       type: string

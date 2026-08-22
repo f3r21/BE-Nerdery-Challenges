@@ -134,6 +134,15 @@ validation-error array fits without leaving the standard. Inventing
 `{code, message, details[]}` would have been slightly lighter and would have needed
 defending as a local invention instead.
 
+**The readings.** Two assigned readings specify an error body, and they specify
+different ones. Pragmatic RESTful API asks the API to "standardize that all 400 series
+errors come with consumable JSON error representation", which is the one-shape rule
+above. It then proposes `{code, message, description}`, where API Architecture proposes
+`{error, detail}`. The shape departs from both, because a reading list that hand-rolls
+two different bodies is the argument for citing a standard. Little is lost: the
+reading's lookupable `code` is what `type` does as a URI, and its per-field `errors`
+array is what the extension member carries.
+
 ---
 
 ## 3. Pagination envelope
@@ -175,6 +184,15 @@ pages.
 Offset also matches Prisma's `skip` and `take` directly, so the contract and the Week 3
 query are the same idea rather than a translation.
 
+**The reading.** This departs from Pragmatic RESTful API, which says to stay "envelope
+free by default" and to paginate with the RFC 8288 `Link` header. Its two stated
+exceptions are JSONP and clients that cannot read headers, and neither applies here. I
+take the departure because the same section concedes that the `Link` header "isn't a
+complete solution" for an API that returns a total count. The reading's answer to that
+is `X-Total-Count`, and RFC 6648 says a new parameter SHOULD NOT carry an `X-` prefix.
+API Architecture's querystring rule is followed, though it names `page` and `page_size`
+where this uses `offset` and `limit`.
+
 ---
 
 ## 4. JSON field casing
@@ -196,7 +214,7 @@ means a field can drift: the column and the property can disagree, and nothing c
 except review.
 
 **Why:** the coupling is the thing being avoided, and this week proves it is not
-hypothetical. `user_auth_data` becomes `users` in the Saturday ERD pass because a reviewer
+hypothetical. `user_auth_data` becomes `users` in the next ERD pass because a reviewer
 asked, and the rename is still pending: `challenge/erd` at `8d47aae` reads `user_auth_data`
 today. That is the point rather than an excuse, because the contract is already written and
 the rename will not touch it. If
@@ -213,6 +231,14 @@ that distinction never comes up.
 
 The consumer is TypeScript, so `order.createdAt` reads natively and `order.created_at`
 makes every client either rename on receipt or accept a lint warning on every access.
+
+**The reading.** This follows Pragmatic RESTful API, which says the "right" thing for a
+JSON API is to follow JavaScript conventions, "and that means camelCase for field
+names". The same section argues against itself, reporting a 2010 eye-tracking study in
+which "snake_case is 20% easier to read than camelCase". I take the recommendation over
+the evidence because the consumer here is TypeScript, not a person reading raw payloads.
+The reading also predicts the Gave up line above: it suggests JSON serialization
+libraries handle the naming transformation, which is the mapping layer priced there.
 
 ---
 
@@ -254,6 +280,14 @@ drops anything in the final second.
 
 `format: date-time` is also the OpenAPI-native spelling, so the linter and any generated
 client validate it without a custom pattern.
+
+**Against the readings.** The assigned readings pin a time format for HTTP headers only,
+not for a body field. Pragmatic RESTful API rejects epoch seconds and says a new
+timestamp header *"should follow RFC 1123 conventions instead of using UNIX
+timestamps."* The epoch half is followed here. The RFC 1123 half is not, and it does not
+bind: it is a should about HTTP field values, while these are JSON fields and query
+parameters. Sahni cites RFC 2616 for it, which RFC 9110 replaced in June 2022, and 9110
+section 5.6.7 defines its date format for field values.
 
 ---
 
@@ -325,6 +359,14 @@ not a reason to add the field now.
 Getting the money *type* wrong is not reversible in the same way, which is why the effort
 went there.
 
+**Against the readings.** That asymmetry is Versioning's, not mine. Its breaking-change
+list names *"a change in the request or response type (i.e. changing an integer to a
+float)"*, and its non-breaking list names *"adding new endpoints or new response
+parameters"*. The money type and the omitted `currency` are one of each, so this
+decision follows the reading on both. The reading states the non-breaking rule flatly,
+with no caveat for the reader. The `additionalProperties: false` caveat above is mine,
+and it makes this document stricter than its source.
+
 ---
 
 ## 7. Status-code floor
@@ -341,8 +383,9 @@ requires that a 400, a 401, a 404 and a 409 all render something.
 | 403 vs 404 | Whether "you may not see this" leaks that the resource exists |
 | 409 vs 422 | Conflict with current state, or invalid regardless of state |
 
-**Chose:** the floor below. Full per-endpoint mapping and the header obligations are in
-the reading note, `Week 2 - REST Design + NestJS Foundations/REST Design/HTTP Status Codes`.
+**Chose:** the floor below. The per-operation mapping is `openapi.yaml` itself, where every
+operation declares the codes it answers with. The reading behind the floor is the week's
+HTTP Status Codes page, `restfulapi.net/http-status-codes/`.
 
 | Situation | Code |
 | --- | --- |
@@ -386,6 +429,15 @@ has been refused."* Order ids are plain integers here, not opaque, so a client c
 them. A 403 or 404 difference then turns guessing into an enumeration of which orders exist. Note this does not depend on the ids being strictly sequential: `store.dbml` declares
 `id integer [primary key]` with no `increment`, so nothing in the ERD promises a sequence.
 Guessability is enough.
+
+**Against the readings.** The 404 sentence quoted above sits in the assigned HTTP Status
+Codes reading, so this rule follows it. The reading is carrying RFC 2616 section 10.4.5
+there, and RFC 9110 restates the rule at 15.5.4 under 403, as a MAY. The
+400-on-validation rule departs from Pragmatic RESTful API, whose curated list gives 422
+as the code *"Used for validation errors"* and keeps 400 for a body that *"does not
+parse"*. Sahni also recommends a per-field `errors` array, which `Problem` already
+carries, so the departure costs the client nothing. Both readings still print the
+pre-2022 reason phrase, which RFC 9110 15.5.21 renamed to 422 Unprocessable Content.
 
 **Week 3 consequence, recorded because the implementation will drift here.** CASL throws its
 own `ForbiddenError`, from `@casl/ability`. Measured 2026-08-19: its prototype chain is
@@ -481,6 +533,14 @@ undocumented weakness is a hole a reviewer finds rather than a bounded property 
 number on it. 15 minutes is conventional and defensible in both directions: shorter means
 more refresh traffic, longer means a wider eviction window.
 
+**Against the readings.** Statelessness says a stateless REST API does not establish or
+maintain client sessions, and REST Constraints is blunter: "No session, no history." The
+refresh table departs from both, knowingly, because revoking a signed token needs server
+state and the alternative is a token nobody can withdraw. What is stored is a revocation
+list rather than a per-client session, and every request still carries its own credential.
+The body-carried token is the half that follows: Pragmatic RESTful API says request
+authentication should not depend on cookies or sessions.
+
 ---
 
 ## 9. Authenticated password change
@@ -516,13 +576,20 @@ would do the most damage.
 The caller's own row goes too: a credential change should not leave any session alive on
 the old credential.
 
+**Follows HTTP Status Codes on the 401.** That reading says a 403 "is not a case of
+insufficient client credentials; that would be 401". This endpoint is that case: a
+password presented and refused, not a permission the caller lacks. The same page requires
+a `WWW-Authenticate` header on every 401, which item 7 promises and this operation
+inherits. HTTP Methods offers 200 or 204 on a PATCH of a single resource, so the empty 204
+here is the reading's own option rather than a local invention.
+
 ---
 
 ## 10. Path segment naming
 
 **The question.** Does a path segment name a resource or an action, and how is it spelled.
 
-**What it costs either way.** All-verbs is what this file's prose said until today. It is
+**What it costs either way.** All-verbs is what this file's prose said before this item. It is
 consistent and simple, and it leaves `refresh_tokens.device_name` with no endpoint that reads
 it. All-nouns is the purer reading of Naming REST Resources, and it forces a noun onto two
 operations that have no row behind them.
@@ -563,6 +630,14 @@ always going to be there.
 `forgot-password` has no row behind it, so there is nothing to name, and inventing
 `/password-resets` for consistency alone would put a reset token in a path segment.
 
+**Departs from Naming REST Resources, and not blindly.** That reading says "It is not
+correct to put the verbs in REST URIs", and the escape hatch it offers still asks for a noun.
+Pragmatic RESTful API licenses the other answer: `/search` "would make the most sense even
+though it isn't a resource", documented clearly. Row C13 of my `Where the readings are
+wrong` sheet is why that claim weighs lightly: Fielding's 2008 line is hypertext, not path
+spelling. Security is the one this follows without argument: session tokens "should not
+appear in the URL", where server logs catch them.
+
 ---
 
 ## Deferred to the operations that use them
@@ -584,7 +659,7 @@ Not cross-cutting enough to block authoring. Decided at first use and recorded h
   order confirmation email, a support chat, or a `Referer` header. A real store sends that
   email. The fix is not UUID primary keys but a separate customer-facing order number, so
   orders carry an opaque `orderNumber` beside the integer key. That column is an ERD change,
-  not a contract change, and it is scheduled with the Saturday ERD pass.
+  not a contract change, and it is scheduled with the next ERD pass.
 
   **Gave up:** enumerability, and the option to change course without a break. Every product
   id in this contract is guessable, so anyone can walk the catalog, which costs nothing while
@@ -632,7 +707,7 @@ Not cross-cutting enough to block authoring. Decided at first use and recorded h
   someone waiting on a Large is emailed when a Medium runs low. One thing stays open. No
   `stock_notifications` table exists, so nothing records that a mail was sent and the same
   person can be told repeatedly. That gap is on the ERD's agreed-and-not-done list and belongs
-  to the Saturday pass.
+  to the next ERD pass.
 - **Scope, and the operation count it produces.** *Settled 2026-08-21, when authoring
   stopped.* **The three Optional Features are out. Features 1 to 10 are in, and the contract
   holds 36 operations.**

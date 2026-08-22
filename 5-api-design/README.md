@@ -20,7 +20,7 @@ Neither tool is installed. Both run through `npx`.
 | --- | --- |
 | `openapi.yaml` | The contract. OpenAPI 3.0.3, single file. |
 | `DECISIONS.md` | The cross-cutting calls every operation inherits, in Chose / Gave up / Why form. |
-| `REVIEW.md` | Claude's findings per review round, tagged and decided. |
+| `REVIEW.md` | The findings from each review round, tagged and decided. |
 | `.spectral.yaml` | Spectral ruleset. Exists because v6 refuses to run without one. |
 
 The deliverable is `openapi.yaml`: a contract for the T-Shirt Store API, written against
