@@ -72,6 +72,9 @@ Table shopping_cart_items {
   cart_id integer [not null]
   product_variant_id integer [not null]
   quantity integer
+  Indexes {
+    (cart_id, product_variant_id) [unique]
+  }
 }
 
 Table orders {
@@ -119,6 +122,15 @@ Table product_likes {
   }
 }
 
+Table stock_notifications {
+  user_id integer [not null]
+  product_id integer [not null]
+  sent_at timestamptz [not null]
+  Indexes {
+    (user_id, product_id) [pk]
+  }
+}
+
 Table promo_codes {
   id integer [primary key]
   code varchar [unique]
@@ -157,3 +169,5 @@ Ref: order_status_history.order_id > orders.id
 Ref: order_payments.order_id > orders.id
 Ref: product_likes.user_id > users.id
 Ref: product_likes.product_id > products.id
+Ref: stock_notifications.user_id > users.id
+Ref: stock_notifications.product_id > products.id
