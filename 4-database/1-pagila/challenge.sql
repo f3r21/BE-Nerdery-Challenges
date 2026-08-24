@@ -278,5 +278,5 @@ REFRESH MATERIALIZED VIEW revenue_by_category;
 - How often should this one refresh?
   For periodical reports, like this one, having data that's a couple hours stale is acceptable.
   For something like an item's stock, we'd need exact information to avoid over-selling or under-selling.
-  So, refreshing nightly (via a scheduled job) is enough for this case — the report doesn't need to reflect the last few hours of payments, just needs to be reasonably current for whoever checks it the next day.
+  So, refreshing nightly (via a scheduled job) is enough for this case. The report doesn't need to reflect the last few hours of payments, just needs to be reasonably current for whoever checks it the next day.
 */
