@@ -9,8 +9,8 @@ Enum order_status {
 
 Table users {
   id integer [primary key]
-  email varchar [unique]
-  password_hash varchar
+  email varchar [unique, not null]
+  password_hash varchar [not null]
   first_name varchar
   last_name varchar
   role_id integer [not null]
@@ -25,7 +25,7 @@ Table roles {
 
 Table products {
   id integer [primary key]
-  name varchar
+  name varchar [not null]
   description text
   is_active boolean
   created_at timestamptz
@@ -39,6 +39,9 @@ Table product_variants {
   color varchar
   stock integer
   price numeric(10,2)
+  Indexes {
+    (product_id, size, color) [unique]
+  }
 }
 
 Table categories {
@@ -138,6 +141,7 @@ Table promo_codes {
   discount_value numeric(10,2)
   expiration_date timestamptz
   usage_limit integer
+  times_used integer [not null]
   min_purchase_amount numeric(10,2) [null]
   is_active boolean
 }
