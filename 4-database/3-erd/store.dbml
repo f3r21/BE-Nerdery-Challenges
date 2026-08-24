@@ -7,7 +7,7 @@ Enum order_status {
   cancelled
 }
 
-Table user_auth_data {
+Table users {
   id integer [primary key]
   email varchar [unique]
   password_hash varchar
@@ -18,7 +18,7 @@ Table user_auth_data {
   reset_token_expires_at timestamptz [null]
   created_at timestamptz
 }
-Table user_role {
+Table roles {
   id integer [primary key]
   name varchar // Manager, Client, Delivery
 }
@@ -139,21 +139,21 @@ Table refresh_tokens {
   created_at timestamptz
 } 
 
-Ref: refresh_tokens.user_id > user_auth_data.id
-Ref: user_auth_data.role_id > user_role.id
+Ref: refresh_tokens.user_id > users.id
+Ref: users.role_id > roles.id
 Ref: product_variants.product_id > products.id
 Ref: product_categories.product_id > products.id
 Ref: product_categories.category_id > categories.id
 Ref: product_images.product_id > products.id
-Ref: user_auth_data.id - shopping_carts.user_id
+Ref: users.id - shopping_carts.user_id
 Ref: shopping_cart_items.cart_id > shopping_carts.id
 Ref: shopping_cart_items.product_variant_id > product_variants.id
-Ref: orders.user_id > user_auth_data.id
+Ref: orders.user_id > users.id
 Ref: orders.promo_code_id > promo_codes.id
-Ref: orders.assigned_delivery_person_id > user_auth_data.id
+Ref: orders.assigned_delivery_person_id > users.id
 Ref: order_items.order_id > orders.id
 Ref: order_items.product_variant_id > product_variants.id
 Ref: order_status_history.order_id > orders.id
 Ref: order_payments.order_id > orders.id
-Ref: product_likes.user_id > user_auth_data.id
+Ref: product_likes.user_id > users.id
 Ref: product_likes.product_id > products.id
