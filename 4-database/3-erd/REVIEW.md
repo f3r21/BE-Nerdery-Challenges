@@ -1,4 +1,4 @@
-# ERD Teardown — `store.dbml`
+# ERD Teardown: `store.dbml`
 
 Schema review for the T-Shirt Store capstone. Thirteen required features checked
 against the schema, one third-normal-form violation with its update anomaly, and
@@ -12,19 +12,19 @@ a list of the changes deliberately **not** recommended.
 | ------ | ------- | ----- | -------- | ---------------------- |
 | 4      | 7       | 2     | 11       | 4 of 5                 |
 
-`DECISIONS.md` is good work — five real trade-offs, each with the rejected
+`DECISIONS.md` is good work: five real trade-offs, each with the rejected
 alternative named. Four of the five hold up under pressure. This document goes
 after the fifth, and after everything the file doesn't mention.
 
 ---
 
-## Part 1 — Feature by feature
+## Part 1: Feature by feature
 
 | #   | Feature                             | Verdict     | Why                                                        |
 | --- | ----------------------------------- | ----------- | ---------------------------------------------------------- |
-| 1   | Auth — sign up / in / _out_, reset  | **Partial** | Sign-out has no server-side representation                  |
+| 1   | Auth: sign up / in / _out_, reset  | **Partial** | Sign-out has no server-side representation                  |
 | 2   | Products, variants, images          | **Partial** | Variants aren't unique; images have no primary              |
-| 3   | Manager / Client roles              | Clean       | —                                                           |
+| 3   | Manager / Client roles              | Clean       | none                                                           |
 | 4   | Manager CRUD + disable              | **Partial** | `delete` either fails forever or destroys order history     |
 | 5   | Client browse / cart / like / orders| **Partial** | Inherits #9; duplicate cart lines possible                  |
 | 6   | CASL, cancel before shipped         | **BROKEN**  | The cancel/ship race has no lock target                     |
@@ -38,7 +38,7 @@ after the fifth, and after everything the file doesn't mention.
 
 ---
 
-### B1 — There is no order total, and feature 9 requires filtering by one
+### B1: There is no order total, and feature 9 requires filtering by one
 
 The brief asks for a **price range (min/max)** filter with **limit and offset**
 pagination. Today that query is:
@@ -54,7 +54,7 @@ ORDER BY o.created_at DESC LIMIT 20 OFFSET 40;
 ```
 
 You must aggregate every line item of every order the user has ever placed before
-`HAVING` can reject a single one — and only then can `LIMIT` apply. No index can
+`HAVING` can reject a single one, and only then can `LIMIT` apply. No index can
 help a predicate over an aggregate. Page 40 costs exactly what page 1 costs.
 
 `order_payments.amount` is not a substitute: a `pending` or `cancelled` order has
@@ -63,8 +63,8 @@ place they must appear.
 
 The second argument is your own. `DECISIONS.md` #3 says a receipt has to reflect
 what the customer actually paid. The total _is_ the receipt. Deriving it later
-from line items is exactly the failure `price_at_purchase` exists to prevent —
-add shipping, tax, or a partial refund and the sum of the lines stops being what
+from line items is exactly the failure `price_at_purchase` exists to prevent.
+Add shipping, tax, or a partial refund and the sum of the lines stops being what
 was charged.
 
 **Change:** `orders.subtotal_amount` and `orders.total_amount`, both
@@ -77,12 +77,12 @@ was charged.
 
 ---
 
-### B2 — No current status on `orders`. Where I disagree with DECISIONS #4
+### B2: No current status on `orders`. Where I disagree with DECISIONS #4
 
 Your reasoning is sound where it applies: status changes _are_ a sequence of
 events, and feature 12 wants the full history. Keep the table. But you framed it
-as a choice between the history table and a status column, and it isn't one —
-you keep both. What you gave up isn't "a slightly more complex query." It's three
+as a choice between the history table and a status column, and it isn't one.
+You keep both. What you gave up isn't "a slightly more complex query." It's three
 specific things.
 
 #### (a) "Cancel before shipped" is not enforceable
@@ -96,7 +96,7 @@ COMMIT                              COMMIT
 ```
 
 Nothing conflicts. `order_status_history` is append-only, so there is no row for
-the two transactions to contend on — Postgres has nothing to serialize. The order
+the two transactions to contend on. Postgres has nothing to serialize. The order
 is now both cancelled and shipped, and which one "wins" is decided by microsecond
 ordering on `changed_at`. A CASL guard cannot fix this: it runs before the
 transaction and reads the same stale value.
@@ -139,32 +139,32 @@ zero history rows has no status at all, and the schema is fine with that.
 
 ---
 
-### B3 — Stripe webhooks can be applied twice
+### B3: Stripe webhooks can be applied twice
 
 Stripe's delivery guarantee is **at-least-once**. Your handler commits, the
 response times out, Stripe redelivers. Nothing in this schema stops the second
 delivery from doing everything again: a second `order_payments` row, a second
 `paid` row in the history, and a second `stock = stock - quantity`.
 
-`stripe_reference` is not unique. That is the load-bearing omission — and it is
+`stripe_reference` is not unique. That is the load-bearing omission, and it is
 also the answer to question 2, worked through in Part 2.
 
 **Change:** `UNIQUE (stripe_reference)` on `order_payments`. Optionally also
-`UNIQUE (order_id, status)` on `order_status_history` — no status legitimately
+`UNIQUE (order_id, status)` on `order_status_history`. No status legitimately
 repeats in your flow, so it blocks a duplicate `paid` row for free.
 
 > **What it can do after:** `INSERT ... ON CONFLICT (stripe_reference) DO NOTHING`
 > in the same transaction as the stock decrement, so a replay is rejected by the
-> database. This cannot be done in application code — check-then-insert races
+> database. This cannot be done in application code: check-then-insert races
 > against itself, and the whole point is that the two deliveries may be concurrent.
 
 ---
 
-### B3b — Stock can go negative
+### B3b: Stock can go negative
 
 `product_variants.stock` has no `CHECK (stock >= 0)`. The brief's "validate stock
 availability before creating payment" is a read, then an HTTP round-trip to
-Stripe, then a write — inherently racy. Two buyers on the last unit both pass
+Stripe, then a write, which is inherently racy. Two buyers on the last unit both pass
 validation.
 
 **Change:** `CHECK (stock >= 0)` on `product_variants`.
@@ -175,11 +175,11 @@ validation.
 
 ---
 
-### B4 — Feature 8 will email the same person repeatedly, and you can't detect it
+### B4: Feature 8 will email the same person repeatedly, and you can't detect it
 
 Nothing records that a notification was sent. The brief mandates a queue, and
 BullMQ retries failed jobs by default. If the mail provider 500s after delivering,
-or the worker dies between send and ack, the job re-runs — re-queries "liked P,
+or the worker dies between send and ack, the job re-runs: it re-queries "liked P,
 hasn't purchased P", gets the identical set, and emails all of them again. The
 predicate does not change on retry, so it is not self-limiting.
 
@@ -188,17 +188,17 @@ predicate does not change on retry, so it is not self-limiting.
 
 > **What it can do after:** make the queue job idempotent, so it is safe to retry
 > and safe to fire on every stock change. Today the job is not safe to retry,
-> which means you either lose notifications or duplicate them — the schema offers
+> which means you either lose notifications or duplicate them. The schema offers
 > no third option.
 
 ---
 
-### B4b — "The stock of a product reaches 3" is undefined in this model
+### B4b: "The stock of a product reaches 3" is undefined in this model
 
 Likes are on `products`. Stock is on `product_variants`. A tee in four sizes ×
 two colors has eight stock numbers. Is the trigger `SUM(stock) = 3` across the
 product, or any single variant hitting 3? Both readings are defensible and they
-produce different systems — and the dedup grain in B4 depends on which you pick.
+produce different systems, and the dedup grain in B4 depends on which you pick.
 
 This isn't a missing column. It's a missing decision, and it's the one
 `DECISIONS.md` doesn't have.
@@ -208,10 +208,10 @@ A reviewer will ask.
 
 ---
 
-### B4c — "Include the product's image" is non-deterministic
+### B4c: "Include the product's image" is non-deterministic
 
 `product_images` has no `is_primary` and no `position`. The email job does
-`ORDER BY id LIMIT 1` — whichever row happened to get the lowest id, and it
+`ORDER BY id LIMIT 1`: whichever row happened to get the lowest id, and it
 changes when a manager deletes and re-uploads.
 
 **Change:** `is_primary boolean`, plus
@@ -222,10 +222,10 @@ changes when a manager deletes and re-uploads.
 
 ---
 
-### B5 — `order_items` snapshots price but not identity. Finish what DECISIONS #3 started
+### B5: `order_items` snapshots price but not identity. Finish what DECISIONS #3 started
 
 Your own reasoning: "a product's price change would retroactively alter every
-past order." Correct — and identical for everything else on the receipt:
+past order." Correct, and identical for everything else on the receipt:
 
 ```sql
 UPDATE products         SET name  = 'Vintage Wash Tee' WHERE id = 7;
@@ -233,7 +233,7 @@ UPDATE product_variants SET color = 'Midnight'         WHERE id = 31;  -- was 'N
 ```
 
 Every order ever placed now claims the customer bought a Vintage Wash Tee in
-Midnight. They bought a Classic Tee in Navy. Same anomaly, same argument — the
+Midnight. They bought a Classic Tee in Navy. Same anomaly, same argument. The
 snapshot just stopped one column short.
 
 Feature 4's `delete` is the harder version. `order_items.product_variant_id` is a
@@ -251,7 +251,7 @@ plus `products.deleted_at`.
 
 ---
 
-### B6 — Two missing unique constraints let duplicate rows exist
+### B6: Two missing unique constraints let duplicate rows exist
 
 **`UNIQUE (product_id, size, color)` on `product_variants`.** Nothing stops two
 rows for (product 7, Red, M) with stock 2 and stock 4. The catalog lists "Red / M"
@@ -269,7 +269,7 @@ answer per row.
 
 ---
 
-### B7 — Sign-out is in the brief and has nowhere to live
+### B7: Sign-out is in the brief and has nowhere to live
 
 No sessions table, no refresh tokens, no `password_changed_at`. With a stateless
 JWT, "sign out" can only mean the client discards its own copy; the token stays
@@ -277,9 +277,9 @@ valid until it expires.
 
 The sharpest version: the brief pairs password reset with a _notification email_.
 That email exists to tell the user their account may be compromised. The only
-useful response is "kill the other sessions" — and this schema cannot.
+useful response is "kill the other sessions", and this schema cannot.
 
-**Change:** `user_auth_data.tokens_valid_from timestamptz` — reject any JWT whose
+**Change:** `user_auth_data.tokens_valid_from timestamptz`. Reject any JWT whose
 `iat` precedes it. Or a refresh-token table if you want per-device sign-out.
 
 > **What it can do after:** a signed-out or post-reset token actually stops
@@ -287,11 +287,11 @@ useful response is "kill the other sessions" — and this schema cannot.
 
 ---
 
-### B8 — `promo_codes.usage_limit` cannot be enforced
+### B8: `promo_codes.usage_limit` cannot be enforced
 
 No counter, no redemptions table.
 `SELECT COUNT(*) FROM orders WHERE promo_code_id = ?` returns the right number but
-offers no lock target — N concurrent checkouts all read the same count and all
+offers no lock target. N concurrent checkouts all read the same count and all
 pass.
 
 **Change:** `times_used integer NOT NULL DEFAULT 0`, incremented as
@@ -313,20 +313,20 @@ existing without a code.
   token has expired and which orders fall inside "January." After: they agree.
 - **`numeric` → `numeric(10,2)`.** Unconstrained `numeric` accepts `19.999`;
   Stripe charges integer cents. After: you can't store a price Stripe can't charge.
-- **`status varchar` → Postgres enum.** Four writers touch it — client, manager,
+- **`status varchar` → Postgres enum.** Four writers touch it: client, manager,
   webhook, delivery person. After: the database rejects `'Shipped'`.
 - **Indexes on FK columns.** Postgres does not index the referencing side.
   `orders.user_id`, `order_items.order_id`, `product_variants.product_id`,
   `product_likes.product_id` and `order_status_history.order_id` are all
-  sequential scans. Arguably out of scope for a week-1 ERD — but this file becomes
+  sequential scans. Arguably out of scope for a week-1 ERD, but this file becomes
   your Prisma schema, and `@@index` lives in it.
-- **Naming.** `user_auth_data` holds `first_name`/`last_name` — it's a users
+- **Naming.** `user_auth_data` holds `first_name`/`last_name`. It's a users
   table. And singular/plural is inconsistent (`user_role` vs `products`).
   Cosmetic, but a reviewer will say it.
 
 ---
 
-## Part 2 — The third-normal-form violation
+## Part 2: The third-normal-form violation
 
 It's `order_payments`. Specifically: `stripe_reference` is a determinant that is
 not a superkey.
@@ -335,7 +335,7 @@ not a superkey.
 order_payments(id, order_id, payment_method, stripe_reference, amount, status, created_at)
 ```
 
-`stripe_reference` identifies a Stripe object — a PaymentIntent `pi_...` or a
+`stripe_reference` identifies a Stripe object: a PaymentIntent `pi_...` or a
 Checkout Session `cs_...`. Stripe guarantees these are globally unique, and that
 each has exactly one amount, one status, one order, and one flow type. So this
 functional dependency holds in the real world:
@@ -345,14 +345,14 @@ stripe_reference  ->  { order_id, amount, status, payment_method }
 ```
 
 Note `payment_method` in particular. The brief defines it as "Payment Link or
-Payment Intent" — which is literally the prefix of `stripe_reference`. It is
+Payment Intent", which is literally the prefix of `stripe_reference`. It is
 derivable from the determinant by string inspection.
 
 Now check the definition. A relation is in 3NF iff for every non-trivial FD
 `X -> A`, either `X` is a superkey or `A` is prime.
 
 - `stripe_reference` is **not declared unique**, so it is not a superkey.
-- `amount`, `status`, `payment_method` and `order_id` are all **non-prime** — the
+- `amount`, `status`, `payment_method` and `order_id` are all **non-prime**. The
   only candidate key is `id`.
 
 **⇒ 3NF violated.** Equivalently: `id -> stripe_reference -> amount` is a textbook
@@ -383,7 +383,7 @@ SELECT id, status, amount FROM order_payments WHERE stripe_reference = 'pi_3ABC'
 One real-world payment, two stored copies, one of them stale. That is the update
 anomaly in its literal textbook form: a fact stored in more than one place, and an
 update that touched one copy. Downstream, feature 9's "total amount paid" now
-reports **298.00** on a 149.00 order — and the stock decrement ran twice.
+reports **298.00** on a 149.00 order, and the stock decrement ran twice.
 
 ### The fix
 
@@ -397,15 +397,15 @@ no longer violates 3NF. Zero new columns.
 
 > **What it can do after:** the webhook handler becomes
 > `INSERT ... ON CONFLICT (stripe_reference) DO NOTHING` in the same transaction
-> as the stock decrement — so a replay is rejected by the database, not by a
+> as the stock decrement, so a replay is rejected by the database, not by a
 > check-then-insert in application code that races against itself. Today the
 > schema actively permits the duplicate.
 
 One nuance so you get this right: the constraint is correct because
-`order_payments` is one row **per Stripe object**, mutated in place — which is
-what the `status` column implies. If you ever model it one row **per event** —
-Stripe sends `payment_intent.created`, `.succeeded` and `.payment_failed` all
-sharing the same `pi_` — then the reference legitimately repeats and you'd need a
+`order_payments` is one row **per Stripe object**, mutated in place, which is
+what the `status` column implies. If you ever model it one row **per event** (Stripe sends
+`payment_intent.created`, `.succeeded` and `.payment_failed` all sharing the
+same `pi_`), then the reference legitimately repeats and you'd need a
 separate `stripe_events(event_id text primary key)` table instead. Your current
 design says object-per-row. Keep it, and add the unique.
 
@@ -419,29 +419,29 @@ Be ready to defend both, because a reviewer will raise them.
   this correctly.
 - **`orders.discount_amount`** looks derivable from the promo code. It isn't: for
   a percentage code the discount depends on the order subtotal too, so
-  `promo_code_id -> discount_amount` does not hold — no FD, no violation. And even
+  `promo_code_id -> discount_amount` does not hold: no FD, no violation. And even
   for a fixed-amount code it's a deliberate snapshot, for the same reason as
   above. Keep it.
 
 ---
 
-## Part 3 — What I am not asking you to change
+## Part 3: What I am not asking you to change
 
 You said you'd ask what the schema could do after each change. Here is where the
 honest answer is _nothing_.
 
 | Thing                                                        | Why it stays                                                                                                                                          |
 | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **One role per user** — DECISIONS #1                          | Right call, right reasoning. Every ability in the brief is per-role, not per-user-with-many-roles.                                                      |
-| **Fixed `size`/`color` columns** — DECISIONS #2               | Right. EAV here buys flexibility the brief never asks for and taxes every catalog query.                                                                |
-| **`product_categories` many-to-many** — DECISIONS #5          | Right, and the Pagila precedent is a good justification.                                                                                                |
-| **`price_at_purchase`** — DECISIONS #3                        | Right. B5 extends it; it does not reverse it.                                                                                                           |
+| **One role per user**, DECISIONS #1                          | Right call, right reasoning. Every ability in the brief is per-role, not per-user-with-many-roles.                                                      |
+| **Fixed `size`/`color` columns**, DECISIONS #2               | Right. EAV here buys flexibility the brief never asks for and taxes every catalog query.                                                                |
+| **`product_categories` many-to-many**, DECISIONS #5          | Right, and the Pagila precedent is a good justification.                                                                                                |
+| **`price_at_purchase`**, DECISIONS #3                        | Right. B5 extends it; it does not reverse it.                                                                                                           |
 | **`product_likes.created_at`**                                 | Nice for analytics. Nothing in the thirteen features reads it. Skip.                                                                                    |
 | **Variant-level `is_active`**                                  | The brief only says disable _products_. Skip.                                                                                                           |
 | **S3 key instead of full URL in `image_url`**                  | Images are public to logged-out users, so there is no presigning to do. The URL is fine.                                                                 |
 | **DB-level check on `assigned_delivery_person_id`'s role**     | Doable with `UNIQUE(id, role_id)` and a composite FK, but it hardcodes a role id into a constraint, and a CASL guard already covers it on an optional feature. |
-| **`changed_by` on `order_status_history`**                     | Real stores need it — "did the client cancel, or did we?" This brief doesn't ask. One nullable FK if you want it, but it unblocks nothing.               |
-| **`sku` on `product_variants`**                                | The brief says "SKUs", so the vocabulary is off — but nothing needs a human-readable code that `product_variants.id` doesn't already provide.            |
+| **`changed_by` on `order_status_history`**                     | Real stores need it: "did the client cancel, or did we?" This brief doesn't ask. One nullable FK if you want it, but it unblocks nothing.               |
+| **`sku` on `product_variants`**                                | The brief says "SKUs", so the vocabulary is off, but nothing needs a human-readable code that `product_variants.id` doesn't already provide.            |
 
 ---
 
