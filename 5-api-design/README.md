@@ -24,11 +24,12 @@ Neither tool is installed. Both run through `npx`.
 | `.spectral.yaml` | Spectral ruleset. Exists because v6 refuses to run without one. |
 
 The deliverable is `openapi.yaml`: a contract for the T-Shirt Store API, written against
-ERD commit `8d47aae` on `challenge/erd`. Week 3 implements it.
+the schema in `4-database/3-erd/store.dbml`, which this branch carries since the ERD merge
+at `f96d62a`. Week 3 implements it.
 
 ## Decisions about the toolchain
 
-**The warnings stay.** Do not silence them with placeholder data. Measured 2026-08-21 with
+**The warnings stay.** Do not silence them with placeholder data. Measured 2026-08-25 with
 all 36 operations authored: Redocly reports 0 errors and 2 warnings. Spectral reports 0
 errors and 1 warning. Re-measure before you quote either number.
 

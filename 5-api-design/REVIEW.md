@@ -8,7 +8,7 @@ Every finding carries a tag. Untagged findings do not enter the ledger.
 
 | Tag | Means | Who decides |
 | --- | --- | --- |
-| `[SPEC]` | Required or forbidden by OpenAPI 3.0.3 | I verify it against `spec.openapis.org/oas/v3.0.3` before accepting |
+| `[SPEC]` | Required or forbidden by a named standard: OpenAPI 3.0.3, an RFC, or the brief | I verify it against the named source before accepting, not against recall |
 | `[CONVENTION]` | Common practice, with a named source | I weigh it |
 | `[TASTE]` | Preference, with no source behind it | Rejectable without argument |
 
@@ -80,19 +80,19 @@ outright and eleven were downgraded, and those do not appear below.
 
 | # | Tag | Finding | Verdict | Reasoning | Commit |
 | --- | --- | --- | --- | --- | --- |
-| R2-1 | `[CONVENTION]` | `POST /auth/sessions` answers 201 and sends no `Location` header, and `grep -cin location openapi.yaml` returns 0. Two assigned readings ask for the header: HTTP Methods says SHOULD, and HTTP Status Codes states it with no normative keyword at all. **The rule is weaker than it first looks:** RFC 9110 15.3.2 says the created resource is identified "by either a Location header field in the response or, if no Location header field is received, by the target URI", so omitting it is permitted. The defect here is that the fallback does not work: the target URI is the collection `/auth/sessions`, so a client that signs in cannot learn which row it just created. | Open | The narrowed finding stands. Six other creates now send `Location`, so sessions is the lone exception and needs a written reason rather than a fix. Carried to round 3. |  |
-| R2-2 | `[SPEC]` | `GET /auth/sessions` returns a `{data, meta}` envelope whose `PageMeta.limit` and `PageMeta.offset` are both required, and the operation declares no `parameters` at all. `grep -n "in: query"` returns nothing across the whole document. The envelope promises pagination no caller can perform, and item 3 commits to both parameters "without exception". | Applied | `components/parameters` now declares `Limit` and `Offset`, referenced by all six collections. `grep -c "in: query"` returns 9. | `25d9595` |
-| R2-3 | `[SPEC]` | `PageMeta.limit` carries `default: 20` and `maximum: 100`, and `PageMeta.offset` carries `default: 0`, on a response-only schema where both fields are required. A default on a required response property is unreachable by construction, and the maximum constrains the server's own output rather than the caller's request. | Open | `PageMeta` still carries `default` and `maximum` on required response fields. The `maximum` documents a real server invariant, so only the `default` is clearly wrong. Carried to round 3. |  |
-| R2-4 | `[CONVENTION]` | `Problem` carries property-level examples drawn from a single 409 email-taken occurrence, and `Problem` is referenced by all eight error responses. Swagger UI and Redoc synthesise the body sample from those keywords, so the rendered 401 on sign-in displays `status: 409` with an email-conflict title. | Open | `Problem` still carries examples drawn from one 409, and it is now referenced by ten error responses rather than eight. Carried to round 3. |  |
+| R2-1 | `[CONVENTION]` | `POST /auth/sessions` answers 201 and sends no `Location` header, and `grep -cin location openapi.yaml` returns 0. Two assigned readings ask for the header: HTTP Methods says SHOULD, and HTTP Status Codes states it with no normative keyword at all. **The rule is weaker than it first looks:** RFC 9110 15.3.2 says the created resource is identified "by either a Location header field in the response or, if no Location header field is received, by the target URI", so omitting it is permitted. The defect here is that the fallback does not work: the target URI is the collection `/auth/sessions`, so a client that signs in cannot learn which row it just created. | Applied | Both halves. `createSession` now sends `Location` naming the row that `DELETE /auth/sessions/{id}` addresses, and every `Location` example carries the `/v1` that `servers.url` holds. The row's own claim was wrong and is corrected here: `'201':` returns 8 and `Location:` returned 6, so sessions was never the lone exception. `createPaymentIntent` is the second, and it keeps 201 with no `Location` because no operation in this contract reads a payment attempt back. | TBD |
+| R2-2 | `[SPEC]` | `GET /auth/sessions` returns a `{data, meta}` envelope whose `PageMeta.limit` and `PageMeta.offset` are both required, and the operation declares no `parameters` at all. `grep -n "in: query"` returns nothing across the whole document. The envelope promises pagination no caller can perform, and item 3 commits to both parameters "without exception". | Applied | `components/parameters` now declares `Limit` and `Offset`, referenced by all six collections. `grep -c "in: query"` returned 9, and 10 since R3-2 added `userId`. | `25d9595` |
+| R2-3 | `[SPEC]` | `PageMeta.limit` carries `default: 20` and `maximum: 100`, and `PageMeta.offset` carries `default: 0`, on a response-only schema where both fields are required. A default on a required response property is unreachable by construction, and the maximum constrains the server's own output rather than the caller's request. | Applied | `default` struck from `PageMeta.limit` and `PageMeta.offset`, which is the half that was unreachable by construction. `maximum: 100` stays, because it documents a server invariant a client can rely on. The request-side `Limit` and `Offset` keep their defaults, which is the place a default is reachable. | TBD |
+| R2-4 | `[CONVENTION]` | `Problem` carries property-level examples drawn from a single 409 email-taken occurrence, and `Problem` is referenced by all eight error responses. Swagger UI and Redoc synthesise the body sample from those keywords, so the rendered 401 on sign-in displays `status: 409` with an email-conflict title. | Applied | The three occurrence-specific examples are off `Problem`, and each of the ten shared responses carries its own example at its own status. A rendered 401 now shows a 401. | TBD |
 | R2-5 | `[CONVENTION]` | No 2xx response in the document carries an example. All eleven `example:` keywords sit on request properties or on `Problem`. `SessionTokens` and `Session` are the two schemas a frontend consumes and both render as empty strings in a mock server. The week's own consumer checklist names examples explicitly. | Applied | `Session` and `SessionTokens` carry examples, and every schema written after them does too. | `65376be` |
 | R2-6 | `[CONVENTION]` | Feature 6 marks CASL a MUST and the contract expresses authorization nowhere. `Forbidden` and `Role` are each referenced zero times, no operation description names a role, and no operation declares a 403. The 403-versus-404 split is settled in item 7 and appears in no part of the document a consumer reads. | Applied | Twelve operations declare 403 and ten descriptions carry "Only a manager may use this operation." `Forbidden` and `Role` are both referenced. | `0d75487` |
-| R2-7 | `[SPEC]` | Item 8 defines rotation as deleting the presented refresh row and issuing a new one. `Session.id` is that row's id. So the identifier `GET /auth/sessions` hands the client, and the one `DELETE /auth/sessions/{id}` targets, is destroyed roughly every fifteen minutes by ordinary use. Neither document states whether the id survives, so the contract is silent where it must not be. | Open | Still true, and it is an ERD question rather than a contract one: whether the refresh row keeps its id across rotation. Carried to round 3. |  |
+| R2-7 | `[SPEC]` | Item 8 defines rotation as deleting the presented refresh row and issuing a new one. `Session.id` is that row's id. So the identifier `GET /auth/sessions` hands the client, and the one `DELETE /auth/sessions/{id}` targets, is destroyed roughly every fifteen minutes by ordinary use. Neither document states whether the id survives, so the contract is silent where it must not be. | Applied | Decided rather than worked around: rotation updates the refresh row in place, so `token_hash` and `expires_at` change and `id` and `created_at` survive. Item 8 argues it, `refreshSession` and `Session` state it to a client, and the ERD ledger carries the schema half as the row 4 addendum. `Session.createdAt` means first sign-in on that device. | TBD |
 | R2-8 | `[SPEC]` | No operation declares 500, although item 7 promises it for every uncaught failure. `InternalServerError` is consequently an unused component that both linters warn about. | Applied | `grep -c "'500':"` returns 36, one per operation, per item 7's floor. | `65376be` |
 | R2-9 | `[CONVENTION]` | No request property anywhere carries `minLength`, `maxLength`, `pattern` or `minimum`, while `BadRequest` promises that `errors` names each rejected field. The 400 fires on validation rules the document never states, and there is no password policy in the ledger to state them from. | Applied | Every request property now carries the rule its 400 fires on. `email` is bounded at 254 from RFC 5321 4.5.3.1.3. | `65376be` |
-| R2-10 | `[SPEC]` | Nothing in the ledger decides null against absent. `grep -ci nullable DECISIONS.md` returns 0 across 616 lines, while the YAML header names nullability as the reason for pinning 3.0.3. `deviceName` is bare `type: string` against an ERD column declared `[null]`. | Open | No decision on null against absent exists, and no field declares `nullable`. Real, and it needs a ledger entry rather than a contract change. Carried to round 3. |  |
+| R2-10 | `[SPEC]` | Nothing in the ledger decides null against absent. `grep -ci nullable DECISIONS.md` returns 0 across 616 lines, while the YAML header names nullability as the reason for pinning 3.0.3. `deviceName` is bare `type: string` against an ERD column declared `[null]`. | Applied | `DECISIONS.md` item 11: absent, never null. No field declares nullability and none needs to, which is also what keeps the document diffable if it ever moves to 3.1. Re-derive with `grep -cE '^ +nullable:' openapi.yaml`. | TBD |
 | R2-11 | `[TASTE]` | Enum value casing is inconsistent three lines apart: `OrderStatus` is lowercase and `Role` is SCREAMING_SNAKE. Item 4 governs field names and says nothing about enum values. | Applied | `Role` lowered to match `OrderStatus`, which is the enum that reproduces the ERD exactly. | `65376be` |
 | R2-12 | `[CONVENTION]` | The `Unauthorized` response lists three causes and omits a rejected email or password, yet it is the 401 on `POST /auth/sessions`, where credentials are the only route to a 401. Item 8 already generalises the member to "credentials rejected", so the component is narrower than the decision it implements. | **Rejected** | The shared response describes the shape, not the cause. `ProblemType` carries `invalid-credentials` and `createSession`'s own description names it, so enumerating every caller's cause in the shared component would couple it to every operation that references it. |  |
-| R2-13 | `[CONVENTION]` | `TooManyRequests` declares no `Retry-After` header. The reset-password rate limit is a named Mandatory Implementation, and this is the only part of it a contract can carry. | Open | `TooManyRequests` still declares no `Retry-After`, and there are now three 429s. Carried to round 3. |  |
+| R2-13 | `[CONVENTION]` | `TooManyRequests` declares no `Retry-After` header. The reset-password rate limit is a named Mandatory Implementation, and this is the only part of it a contract can carry. | Applied | `TooManyRequests` declares `Retry-After`, matching the shape of `WWW-Authenticate` on `Unauthorized`. RFC 9110 10.2.3 allows a number of seconds or an HTTP-date, so the schema is a string. | TBD |
 | R2-14 | `[SPEC]` | The YAML header gives the Spectral command without `--ruleset`. Run verbatim it exits with "No ruleset has been found", which this directory's own README predicts and calls misleading. | Applied | The header command now carries `--ruleset`, matching README.md. | `25d9595` |
 | R2-15 | `[SPEC]` | The YAML header and the README both claim "0 errors, three warnings". Measured 2026-08-20 at 390 lines: Redocly gives 0 errors and **10** warnings, Spectral gives 0 errors and **11** warnings, and neither produces the named trio. `info-license` does not appear in the Spectral run at all. The figure was true at 251 lines. | Applied | Corrected, then re-measured at 36 operations: Redocly 0 errors and 2 warnings, Spectral 0 errors and 1. | `25d9595`, `bf22922` |
 | R2-16 | `[CONVENTION]` | `listSessions` and `refreshSession` carry a summary and no description. They are the two operations with the most unstated behaviour: the refresh one hides that a replayed token deletes every session for that user, which is the only thing that makes `refresh-token-unknown` legible to a client. | Applied | Both operations carry descriptions. `refreshSession` now states that a replayed token deletes every refresh row, per item 8. | `25d9595` |
@@ -139,6 +139,12 @@ either the refresh row keeps its `id` and `created_at` across rotation and only 
 and `expires_at` change, or session identity is separated from the token row. That lands in
 the next ERD pass. The contract needs one sentence in item 8 saying which, and a note on
 `Session.createdAt` saying whether it means first sign-in or last rotation.
+
+**Closed 2026-08-25, and the first option won.** The row keeps its `id` and `created_at`, and
+rotation changes `token_hash` and `expires_at`. Item 8 carries the sentence, `Session` carries
+the note, and the ERD ledger carries the schema half as the row 4 addendum. Three ERD passes
+landed between this finding and its answer without touching it, which is what a deferral to
+"the next pass" buys when nothing names the pass.
 
 ### What I rejected, and why
 
@@ -191,30 +197,115 @@ All eight are now referenced, so no feature was left with a component and no ope
 
 | # | Tag | Finding | Verdict | Reasoning | Commit |
 | --- | --- | --- | --- | --- | --- |
-| R3-1 | `[SPEC]` | `openapi.yaml:356` states "A manager assigns any other role" and no operation accepts a role. Zero request bodies mention one, so the ten manager-only operations are reachable only by seeding the database. | Open | A real gap and a design decision: either add the operation or delete the sentence that promises it. | |
-| R3-2 | `[SPEC]` | Feature 4 requires "Show client orders". Neither `Order` nor `OrderSummary` carries a customer identifier and `listAllOrders` declares no user filter, so a manager reading every order cannot tell whose any of them is. | Open | The only Minimum Required Feature that is partially covered. | |
-| R3-3 | `[SPEC]` | `listProducts` and `getProduct` declare `security: []` while also declaring 401, 403 and an `includeInactive` parameter only a manager may set. In 3.0.3 an empty array removes every scheme, so the contract offers no way to authenticate on an operation it says may refuse you for not authenticating. | Open | The correct spelling for optional authentication is `security: [{}, {bearerAuth: []}]`. | |
-| R3-4 | `[SPEC]` | `DECISIONS.md` item 7's floor sends "referencing a variant that does not exist" to 422. Every operation that can do that answers 404. | Open | The contract is consistent across all ten sites and the ledger row is the outlier, so the row is what changes. | |
-| R3-5 | `[CONVENTION]` | `createVariant` and `setVariantStock` say a stock below zero returns 422, and both request schemas declare `minimum: 0`, which makes it a schema validation failure. Item 7 routes those to 400. | Open | Two rows of one table answer the same input differently. | |
+| R3-1 | `[SPEC]` | `createUser`'s description stated "A manager assigns any other role" and no operation accepts a role. Zero request bodies mention one, so the ten manager-only operations are reachable only by seeding the database. | Applied | Closed by deleting the promise rather than building the endpoint. The brief's Manager Capabilities at `Challenge - T-Shirt Store API.md:54-63` list six abilities and role assignment is not among them, and the CASL abilities at `:89-99` do not name it either. The sentence was the defect, not the missing operation. Recorded in the scope entry with its cost: a fresh database has no manager until one is seeded. | TBD |
+| R3-2 | `[SPEC]` | Feature 4 requires "Show client orders". Neither `Order` nor `OrderSummary` carries a customer identifier and `listAllOrders` declares no user filter, so a manager reading every order cannot tell whose any of them is. | Applied | `OrderCustomer` on `Order` and `OrderSummary`, present only when the caller is a manager, plus a `userId` filter on `listAllOrders`. What a manager may see is written out as its own deferred entry rather than assumed, which is what this row asked for. | TBD |
+| R3-3 | `[SPEC]` | `listProducts` and `getProduct` declare `security: []` while also declaring 401, 403 and an `includeInactive` parameter only a manager may set. In 3.0.3 an empty array removes every scheme, so the contract offers no way to authenticate on an operation it says may refuse you for not authenticating. | Applied | The row needed correcting first: `getProduct` declared neither 401 nor 403 nor `includeInactive`, so only `listProducts` matched the finding as written. Both now spell optional authentication `[{}, {bearerAuth: []}]`, and `getProduct` declares 401 because its answer depends on who is asking. `security: []` drops from 9 to 7 and the seven that keep it are genuinely public. | TBD |
+| R3-4 | `[SPEC]` | `DECISIONS.md` item 7's floor sends "referencing a variant that does not exist" to 422. Every operation that can do that answers 404. | Applied | Applied to the ledger, which was the outlier as this row said. Item 7's floor now splits the case in two: a row named by a path parameter is 404, and a row named in the body, such as a `categoryIds` entry, is 422. The contract did not move. | TBD |
+| R3-5 | `[CONVENTION]` | `createVariant` and `setVariantStock` say a stock below zero returns 422, and both request schemas declare `minimum: 0`, which makes it a schema validation failure. Item 7 routes those to 400. | Applied | The schemas were right and the prose was wrong. Both descriptions now say 400, and `'422'` is gone from `createVariant` and `setVariantStock` because nothing on those two operations fires it. The two 422s that survive, on `createProduct` and `updateProduct`, now state their cause. | TBD |
 | R3-6 | `[CONVENTION]` | Three paginated collections declared no 400 although they take the same bounded `limit` and `offset` as the three that did. | Applied | Every collection that references `Limit` or `Offset` now declares 400. Found by enumerating them rather than by trusting the linter, which flagged only the one collection that had no 4xx at all. | `cde5392` |
-| R3-7 | `[CONVENTION]` | Item 6 named `minPrice`, `maxPrice`, `sortBy`, `discountAmount`, `minPurchaseAmount` and `priceAtPurchase`. None exists in the contract. A later sweep found `priceFrom` and `amount` missing from the same list. | Applied | Corrected twice. The entry now says to re-derive the list from the `Money` references rather than trust the prose, because this list has gone stale twice. | `676e5ff`, `cde5392` |
+| R3-7 | `[CONVENTION]` | Item 6 named `minPrice`, `maxPrice`, `sortBy`, `discountAmount`, `minPurchaseAmount` and `priceAtPurchase`. None exists in the contract. A later sweep found `priceFrom` and `amount` missing from the same list. | Applied | Corrected twice. The entry now says to re-derive the list from the `Money` references rather than trust the prose, because this list has gone stale twice. R4-9 closes the last gap in that rule, since `minTotal` and `maxTotal` referenced nothing until then. | `676e5ff`, `cde5392` |
 | R3-8 | `[SPEC]` | Item 5 pinned the range semantics on `from` and `to`. The parameters are `createdFrom` and `createdTo`, renamed when order history was authored. | Applied | The rule was right and the names went stale the same day. | `676e5ff` |
-| R3-9 | `[TASTE]` | `[SPEC]` is defined as "required or forbidden by OpenAPI 3.0.3", and eight of the nine round 2 `[SPEC]` findings are not about OpenAPI 3.0.3. | Open | The tag definition is wrong rather than the findings. It should say "required by a named standard", which is what the rows actually assert. | |
+| R3-9 | `[TASTE]` | `[SPEC]` is defined as "required or forbidden by OpenAPI 3.0.3", and eight of the nine round 2 `[SPEC]` findings are not about OpenAPI 3.0.3. | Applied | The tag definition changed, not the findings. It now reads "required or forbidden by a named standard", which is what the rows always asserted. | TBD |
 | R3-10 | `[CONVENTION]` | `README.md` and the YAML header cited a private note path and a reading-contradiction sheet that exist outside this repository. | Applied | Replaced with `openapi.yaml` itself and the reading URL from the week's Content table. A pointer a reviewer cannot follow is worse than none. | `6d2e823` |
 
 ### The hole
 
-**R3-2, and it is not closed.** Feature 4 asks a manager to show client orders. The contract
-gives a manager every order and no way to attribute one. This is the only Minimum Required
-Feature that came back partial, and it is a schema gap rather than a missing operation:
-`orders.user_id` exists in the ERD and no response shape exposes it.
+**R3-2.** Feature 4 asks a manager to show client orders. The contract gave a manager every
+order and no way to attribute one. This was the only Minimum Required Feature that came back
+partial, and it is a schema gap rather than a missing operation: `orders.user_id` exists in
+the ERD and no response shape exposed it.
 
-It is left open deliberately. Adding a customer to an order representation is a decision about
-what a manager may see, and item 7 already argues that 404 protects a fact. That argument has
-to be made explicitly for this field rather than assumed.
+**Closed 2026-08-25.** It was left open because adding a customer to an order representation
+is a decision about what a manager may see, and item 7 already argues that 404 protects a
+fact. That argument is now made rather than assumed, in its own deferred entry: item 7's rule
+protects which orders exist and whose they are, and it does not reach a manager who is already
+authorized to read every one of them. `OrderCustomer` is optional on both order shapes and
+`listAllOrders` takes a `userId` filter.
 
 ### What I rejected, and why
 
 Nothing in round 3. Every finding above is either a checkable contradiction between two files
 or a capability the brief names and the contract lacks. That is a narrower round than round 2,
 which is what happens when the document has already survived two passes.
+
+**All five open rows closed on 2026-08-25**, and two of the findings needed correcting before
+they could be applied. R3-3 described `getProduct` as declaring 401, 403 and `includeInactive`,
+and it declared none of the three. R3-4 and R3-5 both turned out to indict the ledger rather
+than the contract. A finding that is wrong about its own evidence is still worth filing, and
+it is worth saying so in the row that closes it.
+
+## Round 4, 2026-08-25
+
+**Scope.** The contract against its own two ledgers, after `challenge/erd` merged into this
+branch at `f96d62a`. That merge brought the ERD three passes past the `8d47aae` this document
+was written against, so a class of finding exists here that could not exist on 2026-08-21: a
+claim that was true when it was written and that the merge made false.
+
+**How it differs from the earlier rounds.** Rounds 1 to 3 audited one document. This one
+audits the seam between three: `openapi.yaml`, `5-api-design/DECISIONS.md` and
+`4-database/3-erd/DECISIONS.md`. Six of the fourteen rows below are not defects in any single
+file. They are two files disagreeing.
+
+**This round also closed the twelve rows rounds 2 and 3 left open.** Their verdicts are
+updated in place above, which is the convention this file already uses. That reverses the
+position held on 08-21, which was to declare them rather than fix them because the deliverable
+had shipped. The argument for reversing it: the ERD merge reopened the document anyway, and a
+finding carrying a verdict and a commit is a stronger artifact than a finding left standing.
+
+**Lenses run.** Every claim in both ledgers re-derived against the merged tree, one at a time.
+Every cross-file citation resolved before it was trusted. Every figure re-measured with the
+command that produced it, never quoted.
+
+**A third lens, added late: run the document.** R4-15 and R4-16 were found by serving the
+contract through a Prism mock behind Swagger UI and reading what it actually returned. Neither
+linter reports either one, and no amount of reading the file finds them, because both are about
+what a consumer renders rather than what the document says. This is the cheapest lens in the
+four rounds and it was the last one tried.
+
+### Ledger
+
+| # | Tag | Finding | Verdict | Reasoning | Commit |
+| --- | --- | --- | --- | --- | --- |
+| R4-1 | `[SPEC]` | Two ledgers decide the stock-notification grain in opposite directions and both ship in one branch. `5-api-design/DECISIONS.md` settled a single variant reaching 3 on 08-21. `4-database/3-erd/DECISIONS.md` settled the sum across variants at `62144ff` on 08-24. Each names the other's choice as its own failure mode. | Applied | The ERD's wins on two grounds: it is the literal reading of the brief, and `stock_notifications` is keyed `(user_id, product_id)`, so the table that records the mail cannot express a per-variant trigger without a schema change. A rule the schema cannot record is not a rule. `ProductVariant.stock` carried the old rule to clients and is rewritten. | TBD |
+| R4-2 | `[SPEC]` | Three files claim the contract is "written against ERD commit `8d47aae` on `challenge/erd`". The branch carries the ERD three passes further on, so the citation names a schema this tree does not hold. | Applied | Replaced with the path and the merge commit, both reachable from the branch a reviewer opens. `REVIEW.md:68` and R2-19 keep `8d47aae`, because they record the scope of a round that really did run against it. | TBD |
+| R4-3 | `[SPEC]` | `openapi.yaml` names `user_auth_data` and `user_role`. Both were renamed at `35597a4`. | Applied | Renamed in both comments. The substance of the `Role` comment survives: the schema still leaves the role set open and still spells the third role `Delivery`, and the three ERD passes closed neither. | TBD |
+| R4-4 | `[CONVENTION]` | Item 4's load-bearing evidence says the `user_auth_data` rename "is still pending". It landed at `35597a4`. R2-19 had already corrected the tense once, in the other direction. | Applied | Rewritten in the past tense, which makes it a stronger argument than the one it replaces. The rename happened, and it touched no path, no schema and no field name in the contract. Two YAML comments moved and nothing a client can see. | TBD |
+| R4-5 | `[SPEC]` | Two deferred entries say their ERD dependency is "on the ERD's agreed-and-not-done list". Both shipped at `c41729f`: `UNIQUE (cart_id, product_variant_id)` and `stock_notifications`. | Applied | Both entries record what shipped and keep their cost lines. The cart entry's idempotence promise is enforced by the schema for the first time. | TBD |
+| R4-6 | `[CONVENTION]` | `4-database/3-erd/DECISIONS.md` row 10 says the cart uniqueness constraint exists "so the handler can add to the existing line". The contract says the quantity is absolute and explicitly not an increment. | Applied | The constraint is right and the reason given described semantics the contract rejects. The ERD row now says the handler replaces the quantity on the row already there. Found on the ERD side of the seam, which is the argument for auditing both. | TBD |
+| R4-7 | `[SPEC]` | Every `Location` example is root relative: `/users/128`, `/products/12`, `/images/88`, `/variants/340`, `/orders/501`, `/orders/502`. A path-absolute reference resolves against the origin and not against the server base path, so each drops the `/v1` that item 1 put in `servers.url` and names a URL this API does not serve. | Applied | All six prefixed, and the seventh from R2-1 written that way. `grep -c 'example: /v1/'` returns 7. Item 1 was stated in one file and enforced nowhere, which is the cause these four defects share. | TBD |
+| R4-8 | `[SPEC]` | `ProductSummary` lists `priceFrom` in `required`, and `createProduct`'s own description says a new product has no variant and so has no price. A product between creation and its first variant cannot be represented in `listProducts`. | Applied | `priceFrom` is optional and states when it is absent. Composes with item 11, which makes absent the only empty value. | TBD |
+| R4-9 | `[SPEC]` | `Money` declares no `minimum` while `stock` and `quantity` both do, so a negative price validates against the schema whose own item spends 78 lines on money being exact. | Applied | `minimum: 0` on `Money`, which reaches all sixteen references at once. Nothing legal is excluded, because this contract carries no refund and no discount. | TBD |
+| R4-10 | `[CONVENTION]` | Item 6 names `minTotal` and `maxTotal` as money fields and then tells the reader to re-derive the list from what references the `Money` schema. Those two were inline integers and referenced nothing, so the rule could not find the fields the same paragraph names. | Applied | Both parameters reference `Money` through `allOf`. The rule now enforces itself, which is what R3-7 asked for after this list went stale twice. | TBD |
+| R4-11 | `[CONVENTION]` | Item 7's status-code floor omits 413 and 415, and `uploadProductImage` emits both. It also names 429 for the reset-password limit only, while the contract declares three. | Applied | Two rows added, the 429 row widened to any password endpoint, and item 9 now mentions the rate limit its own operation has always declared. | TBD |
+| R4-12 | `[CONVENTION]` | Item 10 cites "Row C13 of my `Where the readings are wrong` sheet", a document outside this repository. R3-10 declared that class of pointer removed and removed it from `README.md` and the YAML header, and missed this one. | Applied | Replaced with the primary source that sheet's row rests on, Fielding's 2008 post, stated in the first person as my own reading. A pointer a reviewer cannot follow is worse than none. | TBD |
+| R4-13 | `[CONVENTION]` | The B4b entry says `product_likes` keyed `(user_id, product_id)` "already matches the audience the brief asks for". The brief at `Challenge - T-Shirt Store API.md:122` says "users who liked the product **but haven't purchased it yet**". The claim drops the second clause. | Applied | Corrected, and the purchase half named as what it is: a query over `order_items` back through `product_variants`, held nowhere in the schema. The ERD ledger's row 9 had the predicate right all along, which is the tell that the two files were not being read against each other. | TBD |
+| R4-15 | `[CONVENTION]` | `WWW-Authenticate` on `Unauthorized` and `Retry-After` on `TooManyRequests` declare a schema and no example. A mock and Swagger UI both render the type name, so every 401 in the demo carried the literal header value `string`. The `WWW-Authenticate` header is the one real MUST in the whole contract. | Applied | Both carry an example: `Bearer realm="tshirt-store"` and `60`. Found by running the document through a mock, not by reading it. | TBD |
+| R4-16 | `[SPEC]` | Four shared error responses carried a single example naming a single cause, and each serves many operations. A 409 on `POST /orders` rendered the `email-taken` body, and a 404 on an order rendered "No product has this id". This is R2-4's defect one level down: R2-4 moved the example off the schema and onto the response, which fixed the status code and not the cause. | Applied | `Unauthorized`, `Conflict`, `NotFound` and `UnprocessableEntity` now use named `examples`, one per cause the status can carry, so the three 401 members and the three 409 members are enumerated where a client reads them. That is item 2's argument made visible rather than asserted, and it does not couple the component to any operation, which is what R2-12 rejected. | TBD |
+| R4-14 | `[TASTE]` | `ProductImage.url`, `ProductSummary.primaryImageUrl` and `CartItem.imageUrl` are three names for one concept, which is round 1's own lens for the same idea expressed two ways. | **Rejected** | The three sit on three schemas and each reads correctly where it is: `url` on an image, `primaryImageUrl` on a product that has several, `imageUrl` on a cart line that shows one. A field rename is a contract change under this document's own rules, and there is no defect behind this one. |  |
+
+### The hole
+
+**R4-1, and it is the only finding in four rounds that neither document could have found on
+its own.** Both ledgers were internally consistent. Both cited their sources. Both stated a
+cost. They answered the same question in opposite directions, and the contradiction became
+visible at the moment the two files entered one branch and not before.
+
+The four rounds have found four kinds of defect, and the progression is the point. Round 1
+found citation failures inside one file. Round 2 found a missing request shape. Round 3 found
+a feature the contract only partly covered. Round 4 found two documents that disagree. Only
+the last needed the merge to exist.
+
+**What would have caught it earlier.** Nothing in the process, and that is the honest answer.
+The two decisions were taken three days apart, by the same person, reading the same brief,
+and each was written into the ledger that owned it. The check that catches it is a pass over
+both ledgers for questions that appear in both, and no such pass existed until this one.
+
+### What I rejected, and why
+
+**R4-14, the three image field names.** The observation is correct and the conclusion does not
+follow. Each name reads correctly on the schema that carries it, and this document treats a
+field rename as a contract change. Consistency for its own sake is not worth a break, and "the
+same idea expressed two ways" is a lens for finding real duplication rather than a rule that
+every concept owns exactly one spelling.
+
+One rejection in fourteen rows. A round with no rejection is a round that weighed nothing.

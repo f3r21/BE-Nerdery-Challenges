@@ -1,6 +1,11 @@
 # API design decisions
 
-Written against ERD commit `8d47aae` on `challenge/erd`.
+Written against the schema in `4-database/3-erd/store.dbml`, on this branch since the ERD
+merge at `f96d62a`.
+
+The contract was authored against that file at `8d47aae`. Three ERD passes have landed
+since, at `35597a4`, `c41729f` and `23f98b7`. **No operation in `openapi.yaml` changed as a
+result**, which is item 4 doing the job it was chosen for.
 
 Every decision below appears in **every** operation. Retrofitting any one of them is a
 full-document rewrite, which is why they are settled before the first path is typed.
@@ -8,7 +13,7 @@ full-document rewrite, which is why they are settled before the first path is ty
 Same shape as `4-database/3-erd/DECISIONS.md`: what was chosen, what it cost, and why.
 A decision with no "Gave up" line is not a decision, it is a default nobody examined.
 
-## The ten calls
+## The eleven calls
 
 | # | Question | Chose |
 | --- | --- | --- |
@@ -22,12 +27,15 @@ A decision with no "Gave up" line is not a decision, it is a default nobody exam
 | 8 | Tokens | 15 min access, 7 day refresh, rotation on use, per-device sign-out, typed 401 |
 | 9 | Password change | `PATCH /v1/users/me/password` exists, kills every session |
 | 10 | Path naming | A segment is a noun when a row is addressable, a `kebab-case` verb when not |
+| 11 | Null against absent | An optional value is absent from the body, never present and null |
 
 Items 2, 8 and 9 depend on each other: item 2's `Problem.type` is what makes item 8's typed
 401 work, and item 8's session eviction is what makes item 9 cheap. Item 10 depends on items
 1, 4 and 8. It puts no version prefix on a path key (item 1 puts it in `servers.url`) and
 spells a verb `kebab-case` while item 4 keeps query parameters `camelCase`. It exists at all
-because item 8's refresh table gave sessions a row worth naming.
+because item 8's refresh table gave sessions a row worth naming. Item 11 depends on item 1's
+choice of 3.0.3, because 3.0 and 3.1 spell nullability differently and the pinned version is
+the one that has a keyword to leave out.
 
 ---
 
@@ -213,13 +221,12 @@ in the Prisma schema or `@Expose({ name })` in a serializer, one line per field.
 means a field can drift: the column and the property can disagree, and nothing catches it
 except review.
 
-**Why:** the coupling is the thing being avoided, and this week proves it is not
-hypothetical. `user_auth_data` becomes `users` in the next ERD pass because a reviewer
-asked, and the rename is still pending: `challenge/erd` at `8d47aae` reads `user_auth_data`
-today. That is the point rather than an excuse, because the contract is already written and
-the rename will not touch it. If
-the contract exposed column names, that rename would be an API break rather than a schema
-tidy-up. This is the same rule as "no schema table name appears in the spec", applied to
+**Why:** the coupling is the thing being avoided, and this branch proves it is not
+hypothetical. `user_auth_data` was renamed to `users` at `35597a4` because a reviewer
+asked, and `user_role` became `roles` in the same commit. The contract was already written
+by then, and the rename touched no path, no schema and no field name in it. It touched two
+YAML comments that name the tables, and nothing a client can see. Had the contract exposed
+column names, that rename would have been an API break rather than a schema tidy-up. This is the same rule as "no schema table name appears in the spec", applied to
 fields instead of resources, and the version prefix in item 1 exists to survive exactly
 the kind of break it prevents.
 
@@ -302,12 +309,14 @@ Doing nothing is not neutral: `numeric(10,2)` becomes a Prisma `Decimal`, and
 `JSON.stringify` renders a `Decimal` as a **string**, so `{type: number}` is a contract the
 implementation contradicts on day one.
 
-**Chose:** integer minor units, everywhere and without exception. Twelve response fields carry
-it (`price`, `priceFrom`, `unitPrice`, `lineTotal`, `subtotal`, `total`, `amount`) and so do
-the `minTotal` and `maxTotal` query parameters. Re-derive the list rather than trusting this
-one: every field that references the `Money` schema is a money field, and the count is what a
-`$ref` sweep of `components/schemas` returns. Mismatching the parameters against the response
-fields is how a frontend divides by 100 in one place and not the other. Every money field is `type: integer` and carries a value
+**Chose:** integer minor units, everywhere and without exception. Sixteen places reference the
+`Money` schema: twelve response fields (`price`, `priceFrom`, `unitPrice`, `lineTotal`,
+`subtotal`, `total`, `amount`), two request fields on the variant operations, and the
+`minTotal` and `maxTotal` query parameters. Re-derive the list rather than trusting this one:
+`grep -cF "schemas/Money'" openapi.yaml`. The parameters referenced nothing until 2026-08-25,
+so the rule this paragraph states could not find the two fields the same paragraph names, and
+this list went stale twice before that was fixed. Mismatching the parameters against the
+response fields is how a frontend divides by 100 in one place and not the other. Every money field is `type: integer` and carries a value
 in cents, so 19.99 is `1999`. No `currency` field; the store is single-currency and the
 currency is stated once in `info.description`. The ERD keeps `numeric(10,2)` as storage,
 so cents are a wire format, not a storage format.
@@ -393,10 +402,12 @@ HTTP Status Codes page, `restfulapi.net/http-status-codes/`.
 | Missing, expired, or revoked token | 401, with `WWW-Authenticate` |
 | Client hitting a manager-only endpoint | 403 |
 | Client requesting another client's order | **404** |
-| Resource genuinely absent | 404 |
+| Resource genuinely absent, including one named by a **path** parameter | 404 |
 | Email already registered, cancel after shipped, ordering more than the stock on hand | 409 |
-| Setting a stock value below zero, or referencing a variant that does not exist | 422 |
-| Reset-password rate limit | 429 |
+| A file above the size limit | 413 |
+| A file whose media type this operation does not accept | 415 |
+| A row named in the **body** that does not exist, such as a `categoryIds` entry | 422 |
+| Rate limit on any password endpoint | 429 |
 | Stripe webhook, bad signature | 400, and see the note below |
 | Stripe webhook, replay of an applied event | **200** |
 | Uncaught | 500 |
@@ -447,10 +458,18 @@ mappings are needed, not one: `ForbiddenError` to a 403 for role failures, and t
 ownership failures per the rule above. Every `409` promised above also needs Prisma `P2002`
 mapped, or it surfaces as a 500 and the contract lies.
 
-The **stock split** is the 409-versus-422 distinction from the table above, applied twice
-and easy to misread as a contradiction. Ordering 5 units when 3 remain is a conflict with
-current state: restock and the same request succeeds, so 409. Setting stock to -5, or
-naming a variant id that does not exist, is invalid whatever the state, so 422.
+The **stock split** is easy to misread as a contradiction, and it is three codes rather than
+two. Ordering 5 units when 3 remain is a conflict with current state: restock and the same
+request succeeds, so 409. Setting stock to -5 is a schema failure, because the request
+property declares a lower bound of zero and the first rule in this table sends a validation
+failure to 400. Naming a variant id that does not exist is 404, because that id addresses the
+row the operation acts on.
+
+Both halves of that were wrong here until 2026-08-25. This paragraph sent a negative stock
+and a missing variant to 422, `createVariant` and `setVariantStock` repeated it in their own
+descriptions, and every one of the ten sites that can name a missing variant answered 404.
+The contract was right and the ledger was the outlier, so the ledger changed. `REVIEW.md`
+R3-4 and R3-5.
 
 The webhook `200` on replay is not a style choice. Stripe's own documentation: *"Stripe
 attempts to deliver events to your destination for up to three days with an exponential
@@ -485,9 +504,18 @@ per-device sign-out, and a typed 401. Both lifetimes are stated in `info.descrip
 left implicit. In full:
 
 **`POST /v1/auth/refresh`.** Refresh token in the request body, not a cookie. **Rotates on
-every use:** the presented row is deleted and a new one issued. If an already-rotated token
-is presented again, every refresh row for that user is deleted, on the assumption that it
-was stolen and replayed.
+every use:** the presented row is **updated in place**, taking a new `token_hash` and a new
+`expires_at`, and its `id` and `created_at` survive. If an already-rotated token is presented
+again, every refresh row for that user is deleted, on the assumption that it was stolen and
+replayed.
+
+**The row is updated and not replaced, because this contract exposes its id.**
+`GET /auth/sessions` hands the client `Session.id` and `DELETE /auth/sessions/{id}` targets
+it. A delete-then-insert rotation would mint a new id roughly every fifteen minutes, so the
+only session identifier the API offers would be one no client can hold long enough to use.
+`Session.createdAt` therefore means first sign-in on that device, not last rotation. That
+question was open from 2026-08-20 to 2026-08-25 as `REVIEW.md` R2-7, and the ERD ledger
+carries the schema half as the row 4 addendum.
 
 **`DELETE /v1/auth/sessions/current`.** Deletes the presented device's row only, returns 204. Password
 change and password reset delete **every** row for that user.
@@ -556,6 +584,9 @@ password and the new one. Wrong current password is **401**, not 403, because it
 authentication failure rather than a permissions one. On success it fires the same
 password-change email as the reset flow, deletes **every** refresh row for that user
 including the caller's own, and returns 204. The caller signs in again.
+
+It is rate limited, because it accepts a password guess. That is the third 429 in the
+contract, beside the two on the reset flow, and item 7's floor covers all three.
 
 **Gave up:** one more operation, one more guard, and a second entry point into the email
 and session-eviction paths, which is a second place they can be got wrong. Deleting the
@@ -633,10 +664,53 @@ always going to be there.
 **Departs from Naming REST Resources, and not blindly.** That reading says "It is not
 correct to put the verbs in REST URIs", and the escape hatch it offers still asks for a noun.
 Pragmatic RESTful API licenses the other answer: `/search` "would make the most sense even
-though it isn't a resource", documented clearly. Row C13 of my `Where the readings are
-wrong` sheet is why that claim weighs lightly: Fielding's 2008 line is hypertext, not path
-spelling. Security is the one this follows without argument: session tokens "should not
+though it isn't a resource", documented clearly. Naming REST Resources rests its claim on
+Fielding's 2008 post "REST APIs must be hypertext-driven", and my reading of that post is
+that its subject is hypertext and not path spelling, so the claim weighs lightly here. Security is the one this follows without argument: session tokens "should not
 appear in the URL", where server logs catch them.
+
+---
+
+## 11. Null against absent
+
+**The question.** When a field has no value, does the body carry it as `null` or leave it
+out. `deviceName`, `description`, `size`, `color`, `primaryImageUrl`, `paymentMethod` and
+`priceFrom` all have a no-value state, and until 2026-08-25 nothing in this file said which
+of the two it is.
+
+**What it costs either way.** `null` is explicit, so a client can separate "the server sent
+nothing for this field" from "the server did not send this field", and a PATCH can use it to
+mean "clear this". Absence is smaller on the wire and is what a TypeScript optional property
+already means. Leaving it unpinned is the worst of the three: OpenAPI 3.0 spells nullability
+`nullable: true` and 3.1 spells it `type: [string, "null"]`, so an unpinned field gets
+whichever the serializer happens to emit, and the two versions disagree.
+
+**Chose:** **absent, never null.** No field in the document declares nullability, and an
+optional field is omitted from the body when it has no value. Re-derive:
+`grep -cE '^ +nullable:' openapi.yaml` returns 0.
+
+**Gave up:** the clear-a-field idiom on PATCH. `PATCH /products/{id}` can set a description
+and cannot unset one, because an absent key already means "do not change this". A future
+unset needs either `null` with a stated meaning, which reverses this decision, or its own
+operation. The second cost is smaller and real: a client cannot separate a field the server
+chose not to send from one that has no value, so an absent `primaryImageUrl` means "no
+image" and would look identical to a server that stopped sending the field at all.
+
+**Why:** item 1 pins 3.0.3 so Week 3's `@nestjs/swagger` output stays diffable against this
+document, and the nullability spelling is the concrete reason it names. A decision that
+avoids the keyword entirely is the one that survives a later move to 3.1, because there is
+nothing to re-spell.
+
+The consumer decides the rest. It is TypeScript, so an omitted key is `field?: T` and a
+present null is `field: T | null`, and the second forces every read site to handle two empty
+values instead of one. Nest's `ClassSerializerInterceptor` drops `undefined` by default, so
+absence is what the implementation produces with no configuration, and every override is a
+place the document and the framework can drift apart. That is the argument item 7 already
+makes for taking 400 from `ValidationPipe`.
+
+**The readings do not cover it.** No assigned Week 2 reading states a rule for null against
+absent in a JSON body. This one is mine, argued from the OpenAPI version this document pins
+and from the framework Week 3 uses.
 
 ---
 
@@ -683,31 +757,46 @@ Not cross-cutting enough to block authoring. Decided at first use and recorded h
   **Gave up:** the reading's "always use POST for CREATE". A client that wants one more of
   something now sends the resulting total rather than a delta, so it has to know the current
   quantity. It does, because it is rendering the cart, but that is an assumption this contract
-  depends on. The other cost is an ERD change. `shopping_cart_items` carries no uniqueness
-  marker today, so two rows for the same variant in one cart are legal. `UNIQUE (cart_id,
-  product_variant_id)` is already on the ERD's agreed-and-not-done list, and this decision
-  depends on it. Without that constraint the contract promises something the schema does not
-  enforce.
-- **B4b, what "stock reaches 3" counts.** *Settled 2026-08-21. It changes no operation here,
-  and is recorded because it came up while authoring Week 2.* **A single variant reaching 3
-  fires the notification, and the audience stays everyone who liked the parent product.**
+  depends on. The other cost was an ERD change, and it has since been paid.
+  `shopping_cart_items` carried no uniqueness marker when this was written, so two rows for
+  the same variant in one cart were legal. `UNIQUE (cart_id, product_variant_id)` shipped at
+  `c41729f`, so the schema now enforces what this operation promises. Until it did, the
+  contract promised something nothing checked.
+- **B4b, what "stock reaches 3" counts.** *Settled 2026-08-21 as a single variant, and
+  **reversed 2026-08-25** to match the ERD ledger, which decided the opposite at `62144ff`.
+  It changes no operation here.* **The sum of stock across a product's variants reaching 3
+  fires the notification, and the audience is everyone who liked the parent product and has
+  not bought it.**
 
-  The brief says "when the stock of a product reaches 3" and "notify users who liked the
-  product", so it is written as though stock lived on the product. It does not:
-  `product_variants` carries `stock`, which is the more correct model, because a store counts
-  Medium Black separately from Large White. The mismatch is the brief's, not the ERD's.
+  The brief says "when the stock of a product reaches 3", so it is written as though stock
+  lived on the product. It does not: `product_variants` carries `stock`, because a store
+  counts Medium Black separately from Large White. The mismatch is the brief's, not the
+  ERD's, and something has to close it.
 
-  Only the trigger needed a decision. `product_likes` is keyed `(user_id, product_id)`, which
-  already matches the audience the brief asks for.
+  **Why the reversal.** Two ledgers decided this in opposite directions and both shipped in
+  one branch, which is worse than either answer on its own. The ERD's wins on two grounds. It
+  is the literal reading of the brief. And `stock_notifications` is keyed
+  `(user_id, product_id)` at `c41729f`, so the table that records the mail cannot express a
+  per-variant trigger without a schema change. A rule the schema cannot record is not a rule.
 
-  **Gave up:** precision, in favour of firing at all. Summing stock across variants is the
-  literal reading and it fails silently: a product with a hundred Smalls and no Larges never
-  reaches 3, so the person waiting on a Large is never told. Keying likes to the variant would
-  be exact and wrong for people, who like a shirt rather than a size. The cost is noise:
-  someone waiting on a Large is emailed when a Medium runs low. One thing stays open. No
-  `stock_notifications` table exists, so nothing records that a mail was sent and the same
-  person can be told repeatedly. That gap is on the ERD's agreed-and-not-done list and belongs
-  to the next ERD pass.
+  **The audience is narrower than `product_likes`.** The brief at `Challenge - T-Shirt Store
+  API.md:122` says "users who liked the product **but haven't purchased it yet**".
+  `product_likes`, keyed `(user_id, product_id)`, supplies the like half only. The purchase
+  half is a query over `order_items` joined back through `product_variants`, and nothing in
+  the schema holds it precomputed. An earlier version of this entry said `product_likes`
+  "already matches the audience the brief asks for", which dropped the second clause.
+
+  **Gave up:** the case the single-variant rule caught. Summing under-notifies, and it fails
+  silently: eight variants holding one unit each sum to eight, so nobody is told, and the
+  person waiting on a Large hears nothing while a hundred Smalls sit in the warehouse. Keying
+  likes to the variant would be exact and wrong for people, who like a shirt rather than a
+  size. Fixing it properly means variant-level likes, which moves `product_likes`, the
+  notification key and this contract. It is on the ERD ledger's Still open list.
+
+  `stock_notifications` now exists, at `c41729f`, with a composite `(user_id, product_id)`
+  primary key, so a retried worker cannot mail the same person twice. Its cost is permanent
+  and the ERD ledger states it: one row per user per product forever, so a product restocked
+  and falling to 3 again never notifies anyone who was already told.
 - **Scope, and the operation count it produces.** *Settled 2026-08-21, when authoring
   stopped.* **The three Optional Features are out. Features 1 to 10 are in, and the contract
   holds 36 operations.**
@@ -723,6 +812,18 @@ Not cross-cutting enough to block authoring. Decided at first use and recorded h
   `promo_codes`, `assigned_delivery_person_id` and `orders.discount_amount` are columns no
   operation in this document reads or writes. A reviewer can find schema this contract does
   not reach, and the honest answer is that it was cut rather than missed.
+
+  **No operation assigns a role, and that is a cut rather than an oversight.** The brief's
+  Manager Capabilities list six abilities at `Challenge - T-Shirt Store API.md:54-63` and role
+  assignment is not one of them. The CASL abilities at `:89-99` do not name it either.
+  `createUser` makes a client account and nothing else. Until 2026-08-25 that operation's
+  description promised "A manager assigns any other role", which no operation delivered, so
+  the sentence was the defect rather than the missing endpoint. `REVIEW.md` R3-1.
+
+  **Gave up:** a self-sufficient deployment. A fresh database has no manager until one is
+  seeded, so the ten manager-only operations are unreachable on a clean install. Adding
+  `PATCH /users/{id}/role` would close that for one operation's worth of work, and it is the
+  first thing to add if a reviewer asks for it.
 
   **The count is 36, not the 39 an earlier derivation gave.** All three differences follow from
   decisions in this file, not from omissions:
@@ -771,4 +872,26 @@ Not cross-cutting enough to block authoring. Decided at first use and recorded h
   `order_payments.stripe_reference` is unique in the ERD, which is what makes the
   already-applied check reliable rather than a best effort. That column came out of the Week 1
   review, and this is the operation that needs it.
+- **What a manager sees on an order.** *Settled 2026-08-25, closing `REVIEW.md` R3-2.*
+  **`Order` and `OrderSummary` carry an optional `customer` holding `id`, `email`,
+  `firstName` and `lastName`, present only when the caller is a manager, and `listAllOrders`
+  takes a `userId` filter.**
+
+  Feature 4 asks a manager to "Show client orders" and the contract gave a manager every
+  order with no way to attribute one. `orders.user_id` was in the ERD and no response shape
+  exposed it, so this was a schema gap rather than a missing operation. It was the only
+  Minimum Required Feature that came back partial from round 3.
+
+  Item 7 argues that 404 protects a fact, and the fact it protects is which orders exist and
+  whose they are. That argument does not reach here. A manager is already authorized to read
+  every order, so naming the customer on an order a manager may already read discloses
+  nothing the same response did not.
+
+  **Gave up:** a clean type, and some personal data. `customer` is conditional on the
+  caller's role, which is the one shape a generated client cannot express: the same operation
+  returns a different object for two callers, so a client typing `OrderSummary` sees an
+  optional field whose absence means "you are a client" rather than "this order has no
+  customer". A separate `OrderSummaryForManager` would be honest and would double the order
+  shapes. And a manager now reads a client's email out of an order list, which is more
+  personal data in more responses than the previous shape carried.
 - **CORS and exposed headers.** Not expressible in OpenAPI; belongs in the Week 3 notes.
