@@ -69,10 +69,15 @@ of a revocation lag bounded by the access-token lifetime.
 Agreed with, not yet done, and distinct from the section above. Everything else that stood
 here on 2026-08-23 shipped in rows 9 to 14.
 
-- **"Stock reaches 3" is undefined at the variant grain.** `REVIEW.md` B4b. A product has many
-  variants and each carries its own `stock`. The trigger fires on a product, so the threshold
-  has no grain. This is a specification question, not a column, which is why row 9 does not
-  close it.
+- **Variant-level interest is not modelled.** `REVIEW.md` B4b asked at what grain "stock
+  reaches 3" fires. That is now decided as the sum across a product's variants, which is the
+  literal reading of the feature and the reading `stock_notifications(user_id, product_id)`
+  already implements. What stays open is the defect underneath it: likes sit on `products`,
+  stock sits on `product_variants`, and nothing records which variant a person wanted. Summing
+  under-notifies, since eight variants holding one unit each sum to eight and nobody is told.
+  Firing per variant over-notifies. Both are guesses at a fact the model does not hold, and
+  fixing it properly means variant-level likes, which moves `product_likes`, the notification
+  key and the Week 2 contract.
 - **A user is notified once per product, ever.** The composite key in row 9 permits one row
   per `(user_id, product_id)`, so a restock six months later notifies nobody who was already
   told. Fixing it needs a real notion of a restock episode, because putting `sent_at` in the
