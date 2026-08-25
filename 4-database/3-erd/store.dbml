@@ -149,10 +149,10 @@ Table promo_codes {
 Table refresh_tokens {
   id integer [primary key]
   user_id integer [not null]
-  token_hash varchar [unique]
+  token_hash varchar [unique] // rotation updates this in place, so id survives
   device_name varchar [null]
   expires_at timestamptz
-  created_at timestamptz
+  created_at timestamptz // first sign-in on this device, not the last rotation
 } 
 
 Ref: refresh_tokens.user_id > users.id

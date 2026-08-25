@@ -44,7 +44,7 @@ Each row cites the commit that carries it. Findings labelled `B*` come from
 | 7 | `is_primary` on `product_images` | `REVIEW.md` B4c | Accepted | `38021f3` | Feature 8 says "include **the** product's image": singular, definite, while a product has many. Something has to choose, and today `ORDER BY id LIMIT 1` chooses arbitrarily and silently changes when a manager deletes and re-uploads. One boolean and a partial unique index is a cheap price for making the choice explicit. |
 | 8 | Snapshot product identity on `order_items` | `REVIEW.md` B5 | **`deleted_at` accepted, the three columns rejected** | `38021f3` | `products.deleted_at` is not optional: "Delete products" is a manager capability and `order_items.product_variant_id` is a hard FK, so a real delete either errors forever or cascades and destroys order history. The three snapshot columns are a different question. They freeze a **display** fact, not a binding one. `price_at_purchase` exists because what the customer was charged is disputable; a product's name and colour are labels. Three denormalized columns on every order line, kept in sync at write time, to preserve a label. The cost outruns the benefit. |
 | 9 | `stock_notifications` has no table | `REVIEW.md` B4, shape from `REVIEW.md:186` | **Accepted, with a changed key** | `c41729f` | Nothing in the schema recorded that the Feature 8 mail went out, so a retried queue job re-queries "liked P, has not purchased P", gets the identical set, and emails all of them again. `REVIEW.md:186` proposed `UNIQUE (user_id, product_id)` and named no primary key, which would have left this the only table in the schema without one, so it is a composite `[pk]` instead, matching `product_likes`, the structurally identical join table. The cost is permanent and worth stating rather than discovering: one row per user per product forever, so a product restocked and falling to 3 again never notifies that user a second time. Notifying once per restock is a real requirement, it is undecided, and it is in Still open below rather than guessed at here. |
-| 10 | Cart lines not unique per variant | `REVIEW.md` B6 | Accepted | `c41729f` | A double-clicked add-to-cart inserts two identical lines instead of one line with quantity 2, and `openapi.yaml:1144` already promises the operation is idempotent. The constraint is what lets the second insert collide with the first so the handler can add to the existing line, which is the only way the contract's promise is true. |
+| 10 | Cart lines not unique per variant | `REVIEW.md` B6 | Accepted | `c41729f` | A double-clicked add-to-cart inserts two lines for the same variant instead of leaving one, and `openapi.yaml:1175` already promises the operation is idempotent. The contract sets an absolute quantity rather than adding a delta, per the add-to-cart entry in `5-api-design/DECISIONS.md`, so the constraint is what lets the second insert collide with the first and the handler replace the quantity on the row that is already there. Without it the second call leaves a duplicate and the contract's promise is false. |
 | 11 | Variant rows not unique | `REVIEW.md` B6 | Accepted | `23f98b7` | Nothing stops a second row for the same product, size and colour, and each row carries its own `stock` and `price`. The two drift apart with nothing to reconcile them: the customer is charged whichever price the query returned, and the stock you can actually ship is neither number. |
 | 12 | `promo_codes` has no usage counter | `REVIEW.md` B8 | Accepted | `23f98b7` | `usage_limit` was checked against a count of orders, which two concurrent checkouts both read as 99 before either commits, so both pass and a code capped at 100 is used 101 times. `times_used` gives the redemption a single row to lock, so the second transaction waits and reads 100. |
 | 13 | Non-FK required columns nullable | `REVIEW.md`, same class as row 5 | **Partially accepted** | `23f98b7` | All five columns belong under `not null`. Three landed: `users.email`, `users.password_hash` and `products.name`. `quantity` and `price` did not, and the reason is the calendar, not a distinction between them. They stay in Still open below rather than being argued away, because inventing a principle after the fact would be worse than admitting the scope. |
@@ -57,6 +57,24 @@ The finding is real. A signed JWT can't be revoked and sign-out is required.
 The fix isn't: `tokens_valid_from` puts a database read on every authenticated
 request. A refresh-token table confines that state to one endpoint, at the cost
 of a revocation lag bounded by the access-token lifetime.
+
+### Row 4 addendum: rotation updates the row in place
+
+Decided 2026-08-25, closing `5-api-design/REVIEW.md` R2-7, which had asked the question and
+deferred it here.
+
+`POST /auth/refresh` rotates the token. The row is **updated, not replaced**: `token_hash`
+and `expires_at` change, `id` and `created_at` survive. The contract depends on that.
+`GET /auth/sessions` hands the client `Session.id`, `DELETE /auth/sessions/{id}` targets it,
+and a delete-then-insert rotation would destroy that id roughly every fifteen minutes. The
+only session identifier the API exposes would be one no client can hold long enough to use.
+
+`created_at` therefore means when the device first signed in, not when it last refreshed.
+`expires_at` carries the refresh window and moves on every rotation.
+
+**Gave up:** the audit trail a delete-and-insert would leave. One row per device keeps no
+record of how often it rotated, so a replayed token is detectable at the moment it arrives
+and invisible afterwards.
 
 ### What I am not changing, and why
 
