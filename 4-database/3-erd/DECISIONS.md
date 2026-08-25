@@ -90,3 +90,18 @@ here on 2026-08-23 shipped in rows 9 to 14.
   not because they differ from the three that landed. A line item with no quantity means as
   little as a user with no email.
 
+### Where the week's readings support this, and where they run out
+
+One entry per Round 2 row. Read from the Week 1 required list, not from recall. Where a reading
+asserts something without giving a reason, or does not cover the argument at all, this says so.
+
+| Rows | Reading | The claim I am leaning on |
+| --- | --- | --- |
+| 1, 8 | Normalization vs Denormalization | It names "creating aggregates", meaning pre-calculated summary data, as one of three denormalization methods, and frames normalization and denormalization as two techniques rather than right and wrong. It gives no rule, threshold or measurement for choosing between them and says so. So `subtotal_amount` and `total_amount` are a denormalization I chose, not a normal form I broke, and rejecting the three snapshot columns in row 8 is the same judgement pointed the other way. |
+| 3 | Normalization vs Denormalization | Its 3NF rule: remove any column that depends on a non-key column, so every attribute depends on the primary key only and not on another non-key attribute. `stripe_reference` determined `amount` and `status` without being a key, which is that rule exactly. |
+| 5, 13 | Managing Tables | It lists `NOT NULL` among six constraints, and its own worked example writes `email VARCHAR (255) UNIQUE NOT NULL`. Row 13 put `not null` on `users.email` for the reason the reading's example already demonstrates. |
+| 6 | Data Types | It names `TIMESTAMP` and `TIMESTAMPTZ` as separate temporal types and gives `numeric(p,s)` with precision and scale. It is an index of type families and gives no rule for preferring one over another, so the vocabulary is the reading's and the choice is mine. |
+| 9, 10, 11 | Constraints | A primary key is technically a not-null constraint and a UNIQUE constraint together, PostgreSQL builds a unique B-tree index for it, and the composite form moves out of the column definition into its own clause, `PRIMARY KEY (order_id, item_no)`. That is the basis for the composite key in row 9. The same page asserts that every table should have a primary key and gives no reason for it, which matters because row 9 leans on that assertion. |
+| 14 | SQL Best Practices | Its three priorities, in its order, are accuracy, then readability, then performance, and its reason for aliasing every table is that the reader should not have to work out which column belongs to which table. `user_auth_data` holding `first_name` is that same cost moved up to the schema. |
+| 2, 12 | **None covers it** | Transactions gives ACID and the visibility rule before commit. How to work with PostgreSQL transactions gives `SAVEPOINT`, aborted blocks and the transaction modes. Neither covers row-level locking, and row-level locking is the entire argument in rows 2 and 12. That reasoning is mine, from the plans in `mentor-followup.sql` and from the banking exercise, not from a Week 1 reading. |
+| 4, 7 | **None covers it** | No Week 1 reading covers token revocation or partial unique indexes. Row 4 and row 7 are argued from the brief and from `openapi.yaml`. |
