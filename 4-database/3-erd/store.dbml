@@ -118,19 +118,19 @@ Table order_payments {
 }
 
 Table product_likes {
-  user_id integer
-  product_id integer
+  user_id integer [not null]
+  product_variant_id integer [not null] 
   Indexes {
-    (user_id, product_id) [pk]
+    (user_id, product_variant_id) [pk]
   }
 }
 
 Table stock_notifications {
   user_id integer [not null]
-  product_id integer [not null]
+  product_variant_id integer [not null]
   sent_at timestamptz [not null]
   Indexes {
-    (user_id, product_id) [pk]
+    (user_id, product_variant_id) [pk]
   }
 }
 
@@ -149,9 +149,10 @@ Table promo_codes {
 Table refresh_tokens {
   id integer [primary key]
   user_id integer [not null]
-  token_hash varchar [unique] // rotation updates this in place, so id survives
+  token_hash varchar [unique, not null] // rotation updates this in place, so id survives
+  previous_token_hash varchar [null]
   device_name varchar [null]
-  expires_at timestamptz
+  expires_at timestamptz [not null]
   created_at timestamptz // first sign-in on this device, not the last rotation
 } 
 
@@ -172,6 +173,6 @@ Ref: order_items.product_variant_id > product_variants.id
 Ref: order_status_history.order_id > orders.id
 Ref: order_payments.order_id > orders.id
 Ref: product_likes.user_id > users.id
-Ref: product_likes.product_id > products.id
+Ref: product_likes.product_variant_id > product_variants.id
 Ref: stock_notifications.user_id > users.id
-Ref: stock_notifications.product_id > products.id
+Ref: stock_notifications.product_variant_id > product_variants.id
