@@ -9,15 +9,18 @@
 # directory, not against the document, so it exits with "No ruleset has been found"
 # when you omit the flag. README.md says the same.
 #
-# Measured 2026-08-25 after review round 4, with all 36 operations authored: Redocly 0
-# errors and 2 warnings, Spectral 0 errors and 1 warning. Both figures are unchanged since
-# 08-21 and were re-measured rather than carried over. Nothing is silenced with placeholder
-# data. Re-measure before you quote either number.
+# Measured 2026-08-28, with all 37 operations authored: Redocly 0 errors and 4 warnings,
+# Spectral 0 errors and 1 warning. Re-measured, not carried over, and the same 4 come back
+# on the file as it stood before this round of edits, so this round added none. Nothing is
+# silenced with placeholder data. Re-measure before you quote either number.
 #
 #   1 info-license           Redocly only. This is coursework, not a published API.
 #   1 info-contact           Spectral only. The two tools ask for different info fields.
 #   1 no-server-example.com  The server really is localhost. That rule guards public
 #                            descriptions.
+#   2 no-illogical-          A one-member `allOf` around a `$ref`, at the two Money
+#     composition-keywords   examples. 3.0 ignores a sibling of `$ref`, so this is the
+#                            only way to attach an example to a referenced schema.
 #
 # The unused-component warnings are gone, and that is the number worth watching. It stood
 # at 8 when only the auth block existed, and each one named a component waiting for an
@@ -51,6 +54,12 @@ info:
     row. It does not revoke an access token the server already issued, so revocation
     lags by up to 15 minutes. Changing or resetting a password deletes every refresh row for
     that user.
+
+    **Rate limits.** The server limits every operation by source address, in three tiers.
+    Browsing carries the loosest limit. Sign-in carries a tighter limit. The three password
+    operations carry the tightest limit. The server answers 429 with a `Retry-After` header
+    when it refuses a request. This document declares the 429 response only where a client
+    must handle it, but the server can answer 429 on any path.
 
 servers:
   - url: http://localhost:3000/v1
@@ -144,6 +153,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
     get:
