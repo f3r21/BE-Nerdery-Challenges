@@ -1,1 +1,3 @@
 node_modules/
+# Local agent state, never submitted
+.claude/

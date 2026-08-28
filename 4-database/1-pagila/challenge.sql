@@ -8,9 +8,11 @@
     - Results should be grouped by category name
  */
 
-
--- your query here
-
+SELECT c.name AS category, count(fc.film_id) AS film_count
+FROM category c
+LEFT JOIN film_category fc ON fc.category_id = c.category_id
+GROUP BY c.name
+ORDER BY film_count DESC;
 
  /*
     Challenge 2.
@@ -21,7 +23,24 @@
     - The query should limit results to only the top 5 highest-spending customers
  */
 
- -- your query here
+/*
+// output : first_name, last_name, total_spent
+// grain:  customer
+// agg / verbs: group by, sum, order by desc, limit
+// entities: customer, payment
+// path between them: customer -> payment (customer_id)
+// classify every filter: none
+// order:
+// did join mult rows?:
+*/
+
+SELECT c.first_name, c.last_name, SUM(p.amount) AS total_spent
+FROM customer c
+JOIN payment p ON c.customer_id = p.customer_id
+GROUP BY c.first_name, c.last_name, c.customer_id
+ORDER BY total_spent DESC
+LIMIT 5;
+
 
 
 
@@ -35,9 +54,22 @@
     - Results should only include films that have rental records in this time period
 */
 
+/*
+// output: title
+// grain: one row per film
+// agg / verbs: -
+// entities: film, inventory, rental
+// path between them: film.film_id = inventory.film_id, inventory.inventory_id = rental.inventory_id
+// classify every filter: WHERE
+// order: FROM film JOIN inventory JOIN rental → WHERE rental_date filter → SELECT DISTINCT title
+// did join mult rows?: yes, multiplies. need DISTINCT
+*/
 
--- your query here
-
+SELECT DISTINCT f.title
+FROM film f
+JOIN inventory i ON i.film_id = f.film_id
+JOIN rental r ON r.inventory_id = i.inventory_id
+WHERE r.rental_date >= current_date - interval '10 years';
 
 /*
     Challenge 4.
@@ -48,8 +80,23 @@
 */
 
 
--- your query here
+/*
+// output columns: film.title inventory.inventory_id
+// grain (one row = ?): one row per unrented inventory copy
+// verb → clause (SUM/COUNT/none): none
+// entities (tables): film, inventory, rental
+// join type (INNER / LEFT / anti-join) + why: left join, keep unmatched rows as null
+// path (ON conditions): film.film_id = inventory.film_id, inventory.inventory_id = rental.inventory_id
+// filter: WHERE (before group) or HAVING (only if an aggregate exists): WHERE
+// assembled skeleton (FROM→WHERE→GROUP BY→HAVING→SELECT→ORDER BY→LIMIT):
+// fan-out check: does any join multiply rows? how did you verify:
+*/
 
+SELECT f.title, i.inventory_id
+FROM film f
+JOIN inventory i ON i.film_id = f.film_id
+LEFT JOIN rental r ON r.inventory_id = i.inventory_id
+WHERE  r.rental_id IS NULL;
 
 
 
@@ -61,6 +108,33 @@
     - rental_count should show the total number of times the film was rented
 */
 
+/*
+// output columns: film.title, count(rental.rental_id) as rental_count
+// grain (one row = ?): one row per film
+// verb → clause (SUM/COUNT/none): COUNT rentals per film, AVG those counts
+// entities (tables): film, inventory, rental
+// join type (INNER / LEFT / anti-join) + why: LEFT, avg includes every film
+// path (ON conditions): film.film_id = inventory.film_id, inventory.inventory_id = rental.inventory_id
+// filter: WHERE (before group) or HAVING (only if an aggregate exists): HAVING
+// assembled skeleton (FROM→WHERE→GROUP BY→HAVING→SELECT→ORDER BY→LIMIT):
+// fan-out check: does any join multiply rows? how did you verify:
+*/
+
+SELECT f.title, count(r.rental_id) AS rental_count
+FROM film f
+LEFT JOIN inventory i ON i.film_id = f.film_id
+LEFT JOIN rental r ON r.inventory_id = i.inventory_id
+GROUP BY f.film_id, f.title
+HAVING count(r.rental_id) > (
+    SELECT AVG(film_count)
+    FROM (
+        SELECT count(r2.rental_id) AS film_count
+        FROM film f2
+        LEFT JOIN inventory i2 ON i2.film_id = f2.film_id
+        LEFT JOIN rental r2 ON r2.inventory_id = i2.inventory_id
+        GROUP BY f2.film_id
+    ) AS film_counts
+);
 
 
 -- your query here
@@ -75,7 +149,27 @@
     - Results should be grouped by customer and ordered by rental_span_days in descending order
 */
 
--- your query here
+/*
+// output columns: first_name, last_name, first_rental, last_rental, rental_span_days
+// grain (one row = ?): one row per customer
+// verb → clause (SUM/COUNT/none): MIN, MAX
+// entities (tables): customer, rental
+// join type (INNER / LEFT / anti-join) + why: LEFT
+// path (ON conditions): customer.customer_id = rental.customer_id
+// filter: WHERE (before group) or HAVING (only if an aggregate exists): none
+// assembled skeleton (FROM→WHERE→GROUP BY→HAVING→SELECT→ORDER BY→LIMIT):
+// fan-out check: does any join multiply rows? how did you verify:
+*/
+
+SELECT c.first_name, c.last_name,
+       MIN(r.rental_date) AS first_rental,
+       MAX(r.rental_date) AS last_rental,
+       EXTRACT(DAY FROM MAX(r.rental_date) - MIN(r.rental_date)) AS rental_span_days
+FROM customer c
+LEFT JOIN rental r ON r.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY rental_span_days DESC;
+
 
 /*
     Challenge 7.
@@ -85,8 +179,27 @@
 */
 
 
--- your query here
+/*
+// output columns: first_name, last_name
+// grain (one row = ?): one row per customer
+// verb → clause (SUM/COUNT/none): COUNT(DISTINCT category_id), COUNT(*)
+// entities (tables): customer, rental, inventory, film, film_category, category
+// join type (INNER / LEFT / anti-join) + why: INNER, excludes zero rentals
+// path (ON conditions): customer.customer_id = rental.customer_id, rental.inventory_id = inventory.inventory_id, inventory.film_id = film.film_id, film.film_id = film_category.film_id
+// filter: WHERE (before group) or HAVING (only if an aggregate exists): HAVING, aggregate result
+// assembled skeleton (FROM→WHERE→GROUP BY→HAVING→SELECT→ORDER BY→LIMIT):
+// fan-out check: does any join multiply rows? how did you verify: yes, 4-way join
+*/
 
+SELECT c.first_name, c.last_name
+FROM customer c
+JOIN rental r ON r.customer_id = c.customer_id
+JOIN inventory i ON i.inventory_id = r.inventory_id
+JOIN film f ON f.film_id = i.film_id
+JOIN film_category fc ON fc.film_id = f.film_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+HAVING COUNT(DISTINCT fc.category_id) < (SELECT COUNT(*) FROM category)
+ORDER BY c.last_name;
 
 /*
     Challenge 8.
@@ -103,14 +216,67 @@
     - The top 3 categories by revenue.
     - Finally, refresh the materialized view manually using SQL.
 
-    Once you finish the exercise, please answer the following questions: 
-    
-    When would you prefer a materialized view over a regular view? 
+    Once you finish the exercise, please answer the following questions:
+
+    When would you prefer a materialized view over a regular view?
     How often should it be refreshed?
 */
 
--- your work here
+/*
+// output columns: category, total_revenue
+// grain (one row = ?): one row per category
+// verb → clause (SUM/COUNT/none): SUM(amount)
+// entities (tables): payment, rental, inventory, film, film_category, category
+// join type (INNER / LEFT / anti-join) + why: INNER, category with zero revenue isn't meaningful in a revenue report
+// path (ON conditions): payment.rental_id = rental.rental_id, rental.inventory_id = inventory.inventory_id, inventory.film_id = film.film_id, film.film_id = film_category.film_id, film_category.category_id = category.category_id
+// filter: WHERE (before group) or HAVING (only if an aggregate exists): none
+// assembled skeleton (FROM→WHERE→GROUP BY→HAVING→SELECT→ORDER BY→LIMIT):
+// fan-out check: does any join multiply rows? how did you verify: yes, film_category is many-to-many
+*/
 
+-- only if view already created
+ DROP MATERIALIZED VIEW IF EXISTS revenue_by_category;
 
+-- normal query
+SELECT c.name AS category, SUM(p.amount) AS total_revenue
+FROM payment p
+JOIN rental r ON r.rental_id = p.rental_id
+JOIN inventory i ON i.inventory_id = r.inventory_id
+JOIN film f ON f.film_id = i.film_id
+JOIN film_category fc ON fc.film_id = f.film_id
+JOIN category c ON c.category_id = fc.category_id
+GROUP BY c.name
+ORDER BY total_revenue DESC;
 
+-- query saved as a materialized view
+CREATE MATERIALIZED VIEW revenue_by_category AS
+SELECT c.name AS category, SUM(p.amount) AS total_revenue
+FROM payment p
+JOIN rental r ON r.rental_id = p.rental_id
+JOIN inventory i ON i.inventory_id = r.inventory_id
+JOIN film f ON f.film_id = i.film_id
+JOIN film_category fc ON fc.film_id = f.film_id
+JOIN category c ON c.category_id = fc.category_id
+GROUP BY c.name
+ORDER BY total_revenue DESC;
 
+-- all categories
+SELECT * FROM revenue_by_category;
+-- top 3
+SELECT * FROM revenue_by_category ORDER BY total_revenue DESC LIMIT 3;
+-- refresh it
+REFRESH MATERIALIZED VIEW revenue_by_category;
+
+/*
+- When would you use a materialized view instead of a regular view?
+  A materialized view saves the result and serves it once it's needed.
+  The tradeoff is between computing power and storage.
+  A simple way of deciding would be to materialize every expensive query (lots of joins/aggregations) that exceeds some arbitrary execution time, and gets read way more often than the underlying data changes.
+  However, this approach doesn't take into account the resources of the system running the queries.
+  So, in my opinion, deciding on materialized view is a case-by-case thing. One should take into account available storage and available computing power. Re-running the query is acceptable if saving storage is a priority, and vice versa otherwise.
+
+- How often should this one refresh?
+  For periodical reports, like this one, having data that's a couple hours stale is acceptable.
+  For something like an item's stock, we'd need exact information to avoid over-selling or under-selling.
+  So, refreshing nightly (via a scheduled job) is enough for this case. The report doesn't need to reflect the last few hours of payments, just needs to be reasonably current for whoever checks it the next day.
+*/
