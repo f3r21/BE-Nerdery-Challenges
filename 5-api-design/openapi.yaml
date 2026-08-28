@@ -722,21 +722,38 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /products/{id}/like:
+  /variants/{id}/like:
+    # Review round 5, 2026-08-25. The mentor asked that likes and stock notifications
+    # attach to the variant rather than the product, for size and colour precision. The
+    # ERD moved on 2026-08-26; this is the contract following. R4-1, which recorded the
+    # product grain as applied, is reopened and superseded by this.
+    #
+    # The consequence a reader will ask about: `ProductSummary` carries no variant ids,
+    # so a like cannot be sent from the product list. It is sent from the product page,
+    # where `Product.variants` carries them, which is also where a person picks a size.
     put:
       tags: [catalog]
-      summary: Like a product
+      summary: Like a variant
       description: |
-        The server records that this user likes this product.
+        The server records that this user likes this variant, meaning this size and colour
+        of the product rather than the product in general.
 
         The operation is idempotent. A second call leaves the same single like. The
         server reads the user from the token, so the request carries no body.
-      operationId: likeProduct
+
+        The server stores no like counter. A count is read from the likes themselves.
+      operationId: likeVariant
       parameters:
-        - $ref: '#/components/parameters/ProductId'
+        - name: id
+          in: path
+          required: true
+          description: The id of the product variant.
+          schema:
+            type: integer
+          example: 340
       responses:
         '204':
-          description: The user likes this product.
+          description: The user likes this variant.
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -747,16 +764,22 @@ paths:
       tags: [catalog]
       summary: Remove a like
       description: |
-        The server removes the like of this user for this product.
+        The server removes the like of this user for this variant.
 
         The operation is idempotent. The server answers 204 even if the user did not like
-        the product. A product that does not exist still returns 404.
-      operationId: unlikeProduct
+        the variant. A variant that does not exist still returns 404.
+      operationId: unlikeVariant
       parameters:
-        - $ref: '#/components/parameters/ProductId'
+        - name: id
+          in: path
+          required: true
+          description: The id of the product variant.
+          schema:
+            type: integer
+          example: 340
       responses:
         '204':
-          description: The user does not like this product.
+          description: The user does not like this variant.
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -769,7 +792,10 @@ paths:
       tags: [catalog]
       summary: List the products this user likes
       description: |
-        The server returns one page of the products this user likes. An entry has the
+        The server returns one page of the products this user likes. A like is stored
+        against a variant, so a product with two liked variants appears once here.
+
+        An entry has the
         same shape as an entry of the product list.
       operationId: listLikedProducts
       parameters:
@@ -1138,8 +1164,9 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
-
-  /users/me/cart/items:
+    # Review round 5, 2026-08-25. The mentor asked that emptying the cart sit on the
+    # same path the cart is read from, so the collection and its verbs match. The
+    # item-level paths below are unchanged, which was his instruction too.
     delete:
       tags: [cart]
       summary: Empty the cart
@@ -1153,6 +1180,61 @@ paths:
           description: The cart is empty.
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me/cart/items:
+    # Review round 5, 2026-08-25. The mentor observed that the contract had no way to
+    # add to the cart, only to set a line by id. Both belong: a product page adds, and a
+    # cart page sets. They differ in one word and the difference is the point.
+    post:
+      tags: [cart]
+      summary: Add a quantity of one variant to the cart
+      description: |
+        Send the variant and how many to add. The value is a quantity to add, not the
+        quantity you want. A variant already in the cart has this amount added to it.
+
+        Send `PUT /users/me/cart/items/{variantId}` instead to set an absolute quantity.
+
+        The resulting quantity may not exceed the units on hand. A request that would take
+        it above the stock returns 409 with the `insufficient-stock` problem type, and the
+        cart does not change.
+
+        A variant of a product that is deleted or disabled returns 404.
+      operationId: addCartItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [variantId, quantity]
+              properties:
+                variantId:
+                  type: integer
+                  description: The variant to add.
+                  example: 340
+                quantity:
+                  type: integer
+                  minimum: 1
+                  description: How many to add. One or more, because adding nothing is not
+                    a request the server needs to answer. Send a DELETE to remove a line.
+                  example: 2
+      responses:
+        '200':
+          description: The cart after the line was added.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -1706,8 +1788,18 @@ components:
     # shape because refresh replaces both tokens, so a client stores them the same way.
     SessionTokens:
       type: object
-      required: [accessToken, refreshToken]
+      # Review round 5, 2026-08-25. The mentor asked that the sign-in response carry the
+      # user as well as the tokens, so a client does not need a second request to learn
+      # who it just signed in as. `user` is required on this response: the server has the
+      # row in hand at that moment, so making it optional would only invite a client to
+      # handle an absence that never happens.
+      required: [accessToken, refreshToken, user]
       properties:
+        user:
+          allOf:
+            - $ref: '#/components/schemas/User'
+          description: The account that just signed in. The same shape `POST /users`
+            returns, so a client parses one schema and not two.
         accessToken:
           type: string
           description: A bearer token. It is valid for 15 minutes.
@@ -1859,8 +1951,9 @@ components:
         stock:
           type: integer
           description: The units on hand for this variant. Feature 8 mails the users who
-            like a product when the sum of this value across every variant of that product
-            reaches 3. This API does not treat the number as a secret.
+            like this variant when this value reaches 3. The trigger is per variant, so a
+            customer waiting on one size hears when that size arrives and not when some
+            other size does. This API does not treat the number as a secret.
           minimum: 0
           example: 7
 

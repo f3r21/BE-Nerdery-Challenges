@@ -309,3 +309,108 @@ same idea expressed two ways" is a lens for finding real duplication rather than
 every concept owns exactly one spelling.
 
 One rejection in fourteen rows. A round with no rejection is a round that weighed nothing.
+
+---
+
+## Round 5, 2026-08-28. The first round from outside
+
+The first four rounds were self-review. This one is not: every finding is a mentor observation
+from the review of 2026-08-25, applied three days late because the observations were not
+written down while he spoke and had to be recovered from a meeting summary.
+
+That delay is itself the finding worth recording. `notes/week-2-review-notes.md` existed
+specifically to be filled during the meeting, and its own header explains that the Week 1 items
+"existed nowhere until they were written down by hand three days later". The same thing happened
+again. The recovered rows are a paraphrase, not his words, and the file says so.
+
+### R5-1, likes and stock notifications move to the variant
+
+**He said:** likes and stock notifications should attach to the product variant, not the
+product, for size and colour precision.
+
+**Applied.** `/products/{id}/like` becomes `/variants/{id}/like` for both verbs, `likeProduct`
+and `unlikeProduct` become `likeVariant` and `unlikeVariant`, and the feature 8 trigger sentence
+on `ProductVariant.stock` is rewritten. It read "the sum of this value across every variant of
+that product reaches 3", which is the product-grain statement.
+
+**This supersedes R4-1.** Round 4 settled this in favour of the product grain, on the reasoning
+that it was the literal reading of the brief and that `stock_notifications(user_id, product_id)`
+could not express a per-variant trigger. The second half was true of the ERD as it then stood;
+the ERD moved on 2026-08-26 at `c4cc306`, at his instruction, and the key is now
+`(user_id, product_variant_id)`. So R4-1's premise was retired by the same review that produced
+this row. R4-1 stands as correctly decided on the information available and is closed as
+superseded rather than wrong.
+
+**What it costs, stated because a reader will find it.** `ProductSummary` carries no variant
+ids, so a like cannot be sent from the product list. It is sent from the product page, where
+`Product.variants` carries them. That is also where a person picks a size, so the constraint and
+the interaction agree, but it is a constraint and not a free change.
+
+**`listLikedProducts` still returns products.** A person browses products, not sizes, and two
+liked variants of one product are one entry. Collapsing variant likes to products is a
+`DISTINCT`; the reverse cannot be done at all, which is the asymmetry that makes the variant
+grain the safe direction.
+
+### R5-2, the sign-in response carries the user
+
+**He said:** the login response should also return user info, name and role, to reduce client
+follow-up queries.
+
+**Applied.** `SessionTokens` gains a required `user` member referencing the existing `User`
+schema. Required rather than optional: the server holds the row at that moment, so an optional
+member would only invite a client to handle an absence that never occurs.
+
+Worth noting that this is the first time the contract has been changed for a reason that is
+neither correctness nor consistency. It is changed because a client would otherwise make two
+requests where one would do, which is a cost the contract could not see from inside itself.
+
+### R5-3, emptying the cart moves to the cart
+
+**He said:** cart delete should be `DELETE /users/me/cart`, dropping `items`, to match the `GET`
+convention. Item-level endpoints stay as they are.
+
+**Applied.** `clearCart` moves from `/users/me/cart/items` to `/users/me/cart`, so the two verbs
+on the collection sit on the path the collection is read from.
+
+### R5-4, a way to add to the cart
+
+**He said:** there is no POST endpoint to add items to the cart.
+
+**Applied.** `POST /users/me/cart/items` with `variantId` and `quantity`, where the quantity is
+an amount to add. `PUT .../{variantId}` keeps its absolute-set semantics.
+
+Both belong, and the distinction is not pedantry: a product page adds, and a cart page sets. A
+single operation would force one of the two callers to read the current quantity first, which is
+a request the other endpoint exists to avoid.
+
+### R5-5, ownership on sign-out-other-device
+
+**He said:** the sign-out-other-device endpoint needs a check that the target session belongs to
+the same account as the caller's token, to prevent user A logging out user B with a known
+session id.
+
+**No change required, and it was already built.** `DELETE /auth/sessions/{id}` has always
+declared 404 and deliberately no 403, on the reasoning at R2 that a 403 would confirm the
+session exists. The implementation scopes its delete by `{ id, userId }` and answers 404 on zero
+rows, so the attempt neither succeeds nor reveals anything, and there is an end-to-end test for
+exactly that case.
+
+The observation is still worth its row. He arrived at the requirement independently, and a rule
+that two people reach separately is one worth keeping.
+
+### R5-6, the reset flow, ambiguous and not applied
+
+**He said:** the password reset flow, email verification and logout all devices, is not yet
+reflected in the contract.
+
+**Not applied, because it resolves two ways and guessing is worse than asking.** Logging every
+device out on a reset is in the contract already, and is implemented and tested. Account email
+verification at sign-up is in neither the contract nor the brief, and adding it would be new
+scope rather than a correction. The question is with him.
+
+### What this round did not do
+
+Nothing was rejected. Six observations, four applied, one already satisfied, one held open on a
+question of fact. A round with no rejection weighed nothing, by round 4's own standard, so this
+one is weaker than it looks: these are instructions from the grader, and the only judgement
+exercised was on R5-6, where the honest move was to decline to guess.
