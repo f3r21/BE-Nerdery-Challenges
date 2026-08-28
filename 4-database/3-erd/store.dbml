@@ -1,0 +1,178 @@
+Enum order_status {
+  pending
+  paid
+  processing
+  shipped
+  delivered
+  cancelled
+}
+
+Table users {
+  id integer [primary key]
+  email varchar [unique, not null]
+  password_hash varchar [not null]
+  first_name varchar
+  last_name varchar
+  role_id integer [not null]
+  reset_token varchar [null]
+  reset_token_expires_at timestamptz [null]
+  created_at timestamptz
+}
+Table roles {
+  id integer [primary key]
+  name varchar // Manager, Client, Delivery
+}
+
+Table products {
+  id integer [primary key]
+  name varchar [not null]
+  description text
+  is_active boolean
+  created_at timestamptz
+  deleted_at timestamptz [null]
+}
+
+Table product_variants {
+  id integer [primary key]
+  product_id integer [not null]
+  size varchar
+  color varchar
+  stock integer
+  price numeric(10,2)
+  Indexes {
+    (product_id, size, color) [unique]
+  }
+}
+
+Table categories {
+  id integer [primary key]
+  name varchar
+}
+
+Table product_categories {
+  product_id integer
+  category_id integer
+  Indexes {
+    (product_id, category_id) [pk]
+  }
+}
+
+Table product_images {
+  id integer [primary key]
+  product_id integer [not null]
+  image_url varchar
+  is_primary boolean [not null]
+}
+
+Table shopping_carts {
+  id integer [primary key]
+  user_id integer [unique, not null] 
+  created_at timestamptz
+}
+
+Table shopping_cart_items {
+  id integer [primary key]
+  cart_id integer [not null]
+  product_variant_id integer [not null]
+  quantity integer
+  Indexes {
+    (cart_id, product_variant_id) [unique]
+  }
+}
+
+Table orders {
+  id integer [primary key]
+  status order_status [not null]
+  user_id integer [not null]
+  promo_code_id integer [null]
+  discount_amount numeric(10,2) [null]
+  subtotal_amount numeric(10,2) [not null]
+  total_amount numeric(10,2) [not null]
+  assigned_delivery_person_id integer [null]
+  created_at timestamptz
+}
+
+Table order_items {
+  id integer [primary key]
+  order_id integer [not null]
+  product_variant_id integer [not null]
+  quantity integer
+  price_at_purchase numeric(10,2)
+}
+
+Table order_status_history {
+  id integer [primary key]
+  order_id integer [not null]
+  status order_status [not null]
+  changed_at timestamptz
+}
+
+Table order_payments {
+  id integer [primary key]
+  order_id integer [not null]
+  payment_method varchar
+  stripe_reference varchar [unique]
+  amount numeric(10,2)
+  status varchar
+  created_at timestamptz
+}
+
+Table product_likes {
+  user_id integer [not null]
+  product_variant_id integer [not null] 
+  Indexes {
+    (user_id, product_variant_id) [pk]
+  }
+}
+
+Table stock_notifications {
+  user_id integer [not null]
+  product_variant_id integer [not null]
+  sent_at timestamptz [not null]
+  Indexes {
+    (user_id, product_variant_id) [pk]
+  }
+}
+
+Table promo_codes {
+  id integer [primary key]
+  code varchar [unique]
+  discount_type varchar
+  discount_value numeric(10,2)
+  expiration_date timestamptz
+  usage_limit integer
+  times_used integer [not null]
+  min_purchase_amount numeric(10,2) [null]
+  is_active boolean
+}
+
+Table refresh_tokens {
+  id integer [primary key]
+  user_id integer [not null]
+  token_hash varchar [unique, not null] // rotation updates this in place, so id survives
+  previous_token_hash varchar [null]
+  device_name varchar [null]
+  expires_at timestamptz [not null]
+  created_at timestamptz // first sign-in on this device, not the last rotation
+} 
+
+Ref: refresh_tokens.user_id > users.id
+Ref: users.role_id > roles.id
+Ref: product_variants.product_id > products.id
+Ref: product_categories.product_id > products.id
+Ref: product_categories.category_id > categories.id
+Ref: product_images.product_id > products.id
+Ref: users.id - shopping_carts.user_id
+Ref: shopping_cart_items.cart_id > shopping_carts.id
+Ref: shopping_cart_items.product_variant_id > product_variants.id
+Ref: orders.user_id > users.id
+Ref: orders.promo_code_id > promo_codes.id
+Ref: orders.assigned_delivery_person_id > users.id
+Ref: order_items.order_id > orders.id
+Ref: order_items.product_variant_id > product_variants.id
+Ref: order_status_history.order_id > orders.id
+Ref: order_payments.order_id > orders.id
+Ref: product_likes.user_id > users.id
+Ref: product_likes.product_variant_id > product_variants.id
+Ref: stock_notifications.user_id > users.id
+Ref: stock_notifications.product_variant_id > product_variants.id
